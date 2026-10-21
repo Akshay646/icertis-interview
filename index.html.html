@@ -1,0 +1,2064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>.NET Interview Prep — Question Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F5F6F3;
+  --card:#FFFFFF;
+  --ink:#1A2328;
+  --ink-soft:#4C5A61;
+  --ink-faint:#7C888D;
+  --rule:#DCE0D9;
+  --accent:#0E5D52;
+  --accent-soft:#E2EFEB;
+  --flag:#8C2F39;
+  --flag-soft:#F6E7E6;
+  --code-bg:#1B262C;
+  --code-ink:#DCE5E2;
+  --focus:#0E5D52;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#10171A;
+    --card:#161F23;
+    --ink:#E6EDE9;
+    --ink-soft:#A9B7B9;
+    --ink-faint:#7B8A8D;
+    --rule:#273237;
+    --accent:#58CFB6;
+    --accent-soft:#16302C;
+    --flag:#E8907F;
+    --flag-soft:#3A2220;
+    --code-bg:#0B1114;
+    --code-ink:#D6E2DE;
+    --focus:#58CFB6;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#10171A;
+  --card:#161F23;
+  --ink:#E6EDE9;
+  --ink-soft:#A9B7B9;
+  --ink-faint:#7B8A8D;
+  --rule:#273237;
+  --accent:#58CFB6;
+  --accent-soft:#16302C;
+  --flag:#E8907F;
+  --flag-soft:#3A2220;
+  --code-bg:#0B1114;
+  --code-ink:#D6E2DE;
+  --focus:#58CFB6;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 4.5rem);scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation-duration:.01ms !important;transition-duration:.01ms !important}}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:"Source Serif 4",Georgia,serif;
+  font-size:1.0625rem;line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--paper);z-index:60}
+h1,h2,h3,h4,.ui{font-family:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;font-weight:600;letter-spacing:-.01em}
+code,pre,.mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace}
+a{color:var(--accent);text-underline-offset:.18em}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2.5px solid var(--focus);outline-offset:2px;border-radius:2px}
+
+/* ---------- shell ---------- */
+.wrap{display:grid;grid-template-columns:16.5rem minmax(0,1fr);gap:0;max-width:84rem;margin:0 auto}
+.rail{
+  position:sticky;top:env(safe-area-inset-top,0px);align-self:start;
+  height:100vh;height:100dvh;overflow-y:auto;
+  border-right:1px solid var(--rule);padding:1.6rem 1.1rem 3rem 1.4rem;
+}
+.rail-title{font-size:.95rem;font-weight:800;margin:0 0 .15rem;letter-spacing:-.02em}
+.rail-sub{font-size:.78rem;color:var(--ink-faint);margin:0 0 1.1rem;font-family:"Bricolage Grotesque",sans-serif}
+.rail nav a{
+  display:block;padding:.34rem .5rem;margin:.05rem -.5rem;border-radius:4px;
+  font-family:"Bricolage Grotesque",sans-serif;font-size:.86rem;line-height:1.3;
+  color:var(--ink-soft);text-decoration:none;
+}
+.rail nav a:hover{background:var(--accent-soft);color:var(--ink)}
+.rail nav a.on{color:var(--accent);font-weight:600;background:var(--accent-soft)}
+.rail nav .grp{font-size:.7rem;color:var(--ink-faint);margin:1rem 0 .3rem;font-family:"Bricolage Grotesque",sans-serif;letter-spacing:.02em}
+main{padding:0 1.6rem 6rem;min-width:0}
+
+/* ---------- topbar ---------- */
+.topbar{
+  position:sticky;top:env(safe-area-inset-top,0px);z-index:50;
+  display:flex;gap:.6rem;align-items:center;
+  padding:.7rem 0;background:var(--paper);border-bottom:1px solid var(--rule);
+}
+#q{
+  flex:1;min-width:0;padding:.5rem .7rem;border:1px solid var(--rule);border-radius:6px;
+  background:var(--card);color:var(--ink);font-family:"Bricolage Grotesque",sans-serif;font-size:.9rem;
+}
+.btn{
+  padding:.5rem .7rem;border:1px solid var(--rule);border-radius:6px;background:var(--card);
+  color:var(--ink-soft);font-family:"Bricolage Grotesque",sans-serif;font-size:.82rem;cursor:pointer;white-space:nowrap;
+}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+#menu{display:none}
+
+/* ---------- hero ---------- */
+.hero{padding:3.2rem 0 2.4rem;border-bottom:1px solid var(--rule)}
+.hero h1{font-size:clamp(2.1rem,5.2vw,3.5rem);line-height:1.02;margin:0 0 .7rem;font-weight:800;letter-spacing:-.035em;max-width:16ch}
+.hero p{margin:0 0 2rem;max-width:62ch;color:var(--ink-soft);font-size:1.08rem}
+.rounds{display:grid;grid-template-columns:repeat(auto-fit,minmax(13rem,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule)}
+.round{background:var(--card);padding:1rem 1.1rem}
+.round .r-n{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--accent);display:block;margin-bottom:.35rem}
+.round .r-t{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;font-size:1rem;display:block;margin-bottom:.3rem}
+.round .r-d{font-size:.88rem;color:var(--ink-soft);line-height:1.45}
+
+/* ---------- sections ---------- */
+section{padding-top:3rem;scroll-margin-top:5rem}
+.sec-head{border-bottom:2px solid var(--ink);padding-bottom:.45rem;margin-bottom:1.6rem;display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap}
+.sec-head h2{font-size:1.6rem;margin:0;font-weight:800;letter-spacing:-.025em}
+.sec-head .count{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--ink-faint)}
+.sec-note{color:var(--ink-soft);font-size:.96rem;margin:-.9rem 0 1.6rem;max-width:68ch}
+
+.qa{border:1px solid var(--rule);background:var(--card);margin-bottom:1rem;border-radius:3px}
+.qa > summary{
+  cursor:pointer;list-style:none;padding:.95rem 1.1rem;display:flex;gap:.8rem;align-items:flex-start;
+  font-family:"Bricolage Grotesque",sans-serif;font-weight:600;font-size:1.01rem;line-height:1.35;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::before{
+  content:"+";font-family:"JetBrains Mono",monospace;color:var(--accent);font-size:1rem;
+  flex:none;width:1rem;text-align:center;margin-top:.08rem;
+}
+.qa[open] > summary::before{content:"\2212"}
+.qa[open] > summary{border-bottom:1px solid var(--rule)}
+.qa:hover{border-color:var(--ink-faint)}
+.body{padding:1.1rem 1.1rem 1.3rem 2.9rem}
+.body > :first-child{margin-top:0}
+.body > :last-child{margin-bottom:0}
+.body p{max-width:70ch;margin:.75rem 0}
+.body ul,.body ol{max-width:70ch;padding-left:1.15rem;margin:.75rem 0}
+.body li{margin:.3rem 0}
+.body h4{font-size:.95rem;margin:1.3rem 0 .4rem;color:var(--ink)}
+
+pre{
+  background:var(--code-bg);color:var(--code-ink);padding:.85rem 1rem;border-radius:4px;
+  overflow-x:auto;font-size:.82rem;line-height:1.55;margin:.8rem 0;
+}
+pre code{color:inherit;background:none;padding:0;font-size:inherit}
+code{background:var(--accent-soft);color:var(--ink);padding:.08em .35em;border-radius:3px;font-size:.86em}
+
+.flag,.key{border-left:3px solid;padding:.7rem .95rem;margin:.9rem 0;font-size:.95rem;max-width:70ch}
+.flag{border-color:var(--flag);background:var(--flag-soft)}
+.key{border-color:var(--accent);background:var(--accent-soft)}
+.flag p,.key p{margin:.3rem 0;max-width:none}
+.flag .lbl,.key .lbl{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;font-size:.8rem;display:block;margin-bottom:.2rem}
+.flag .lbl{color:var(--flag)}
+.key .lbl{color:var(--accent)}
+
+.ref{margin-top:1.1rem;padding-top:.7rem;border-top:1px dashed var(--rule);font-size:.84rem;font-family:"Bricolage Grotesque",sans-serif}
+.ref span{color:var(--ink-faint);margin-right:.4rem}
+.ref a{display:inline-block;margin-right:.9rem}
+
+table{border-collapse:collapse;width:100%;max-width:70ch;margin:.9rem 0;font-size:.9rem}
+th,td{border:1px solid var(--rule);padding:.45rem .6rem;text-align:left;vertical-align:top}
+th{background:var(--accent-soft);font-family:"Bricolage Grotesque",sans-serif;font-weight:600;font-size:.84rem}
+.scroller{overflow-x:auto}
+
+/* ---------- sims ---------- */
+.sim{border:1px solid var(--accent);border-radius:4px;margin:1.2rem 0;max-width:70ch;overflow:hidden}
+.sim-head{background:var(--accent-soft);padding:.5rem .85rem;font-family:"Bricolage Grotesque",sans-serif;font-size:.82rem;font-weight:600;color:var(--accent)}
+.sim-body{padding:.9rem .85rem}
+.ctl{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.8rem;font-family:"Bricolage Grotesque",sans-serif;font-size:.84rem}
+.ctl label{color:var(--ink-soft)}
+.ctl input[type=text],.ctl input[type=number],.ctl select{
+  padding:.35rem .5rem;border:1px solid var(--rule);border-radius:4px;background:var(--card);color:var(--ink);
+  font-family:"JetBrains Mono",monospace;font-size:.82rem;
+}
+.ctl input[type=range]{accent-color:var(--accent)}
+.out{font-family:"JetBrains Mono",monospace;font-size:.82rem;background:var(--paper);border:1px solid var(--rule);padding:.6rem .7rem;border-radius:4px;white-space:pre-wrap;line-height:1.5}
+.bars{display:flex;align-items:flex-end;gap:3px;height:120px;margin-bottom:.6rem}
+.bar{flex:1;background:var(--rule);position:relative;min-width:8px;border-radius:2px 2px 0 0;transition:background .15s}
+.bar.buy{background:var(--accent)}
+.bar.sell{background:var(--flag)}
+.bar span{position:absolute;top:-1.1rem;left:50%;transform:translateX(-50%);font-family:"JetBrains Mono",monospace;font-size:.62rem;color:var(--ink-faint)}
+
+.hidden{display:none !important}
+.no-hits{color:var(--ink-faint);font-style:italic;padding:2rem 0}
+
+footer{border-top:1px solid var(--rule);margin-top:4rem;padding:2rem 0;color:var(--ink-faint);font-size:.85rem;font-family:"Bricolage Grotesque",sans-serif}
+
+@media (max-width:860px){
+  .wrap{grid-template-columns:1fr}
+  .rail{
+    position:fixed;inset:env(safe-area-inset-top,0px) auto env(safe-area-inset-bottom,0px) 0;
+    width:15rem;background:var(--card);z-index:70;transform:translateX(-102%);transition:transform .22s ease;
+    height:auto;
+  }
+  .rail.open{transform:translateX(0);box-shadow:0 0 0 100vmax rgba(0,0,0,.4)}
+  #menu{display:block}
+  main{padding:0 1.1rem 5rem}
+  .body{padding-left:1.1rem}
+  .hero{padding-top:2rem}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<aside class="rail" id="rail">
+  <p class="rail-title">Question bank</p>
+  <p class="rail-sub">.NET · senior backend rounds</p>
+  <nav id="nav">
+    <div class="grp">Rounds</div>
+    <a href="#structure">Interview structure</a>
+    <div class="grp">Core platform</div>
+    <a href="#csharp">C# &amp; .NET fundamentals</a>
+    <a href="#oop">OOP &amp; SOLID</a>
+    <a href="#patterns">Design patterns</a>
+    <a href="#async">Async &amp; concurrency</a>
+    <div class="grp">Data</div>
+    <a href="#linq">LINQ</a>
+    <a href="#ef">Entity Framework</a>
+    <a href="#sql">SQL</a>
+    <div class="grp">Web</div>
+    <a href="#aspnet">ASP.NET Core MVC &amp; Web API</a>
+    <a href="#auth">Authentication &amp; security</a>
+    <div class="grp">Coding</div>
+    <a href="#dsa">DSA &amp; coding problems</a>
+    <div class="grp">Operations</div>
+    <a href="#incident">Incident management</a>
+    <a href="#azure">Azure &amp; Log Analytics</a>
+    <a href="#cicd">CI/CD &amp; deployments</a>
+    <a href="#agile">Agile</a>
+    <div class="grp">AI</div>
+    <a href="#genai">Generative AI &amp; semantic search</a>
+    <div class="grp">Narrative</div>
+    <a href="#project">Project &amp; architecture</a>
+    <a href="#hr">HR round</a>
+  </nav>
+</aside>
+
+<main>
+
+<div class="topbar">
+  <button class="btn" id="menu" aria-label="Open sections">Sections</button>
+  <input id="q" type="text" placeholder="Filter questions — try “n+1”, “jwt”, “fibonacci”" aria-label="Filter questions">
+  <button class="btn" id="expand">Open all</button>
+  <button class="btn" id="theme" aria-label="Switch theme">Theme</button>
+</div>
+
+<header class="hero">
+  <h1>Everything they asked, with answers that hold up.</h1>
+  <p>Compiled from reported rounds at Icertis and comparable .NET shops in Pune. Every topic from the source notes is here, deduplicated and grouped. Answers go past the definition to the follow-up — because the follow-up is where rounds are won or lost.</p>
+  <div class="rounds">
+    <div class="round">
+      <span class="r-n">L1</span>
+      <span class="r-t">Technical, face to face</span>
+      <span class="r-d">.NET, C#, LINQ, SQL. Fundamentals checked hard — they are testing whether the basics are real.</span>
+    </div>
+    <div class="round">
+      <span class="r-n">L2</span>
+      <span class="r-t">Technical, face to face</span>
+      <span class="r-d">Current project architecture and design patterns. Scenario-based, built around what you actually shipped.</span>
+    </div>
+    <div class="round">
+      <span class="r-n">HR</span>
+      <span class="r-t">Virtual</span>
+      <span class="r-d">Role, culture, expectations. Reported as professional and clearly explained.</span>
+    </div>
+  </div>
+</header>
+
+<p class="no-hits hidden" id="nohits">No questions match that filter.</p>
+
+<!-- ============ STRUCTURE ============ -->
+<section id="structure">
+  <div class="sec-head"><h2>Interview structure</h2><span class="count">3 rounds</span></div>
+  <p class="sec-note">What the reported experiences agree on, so you know what each round is actually probing.</p>
+
+  <details class="qa">
+    <summary>What does each round actually test?</summary>
+    <div class="body">
+      <p>The three rounds are not three difficulty levels of the same thing. They probe different claims you have made.</p>
+      <h4>L1 — do you own the platform</h4>
+      <p>Questions from .NET, C#, LINQ and SQL. One reported account puts it bluntly: they check whether the basics are strong or not. Expect definition-then-why chains: what is an assembly, then what types, then why does that matter at deployment. Level 1 coding questions appear here too.</p>
+      <h4>L2 — did you really build what the resume says</h4>
+      <p>Current project architecture and design patterns. Scenario-based rather than quiz-based. The common pattern is a production incident, a design pattern you claim to have used, or a scaling decision. They are checking that your project story survives contact with specifics.</p>
+      <h4>HR — fit, expectations, and compensation</h4>
+      <p>Reported as professional and clear about role, culture, and expectations. This is a real round, not a formality.</p>
+      <div class="key">
+        <span class="lbl">The highest-leverage preparation</span>
+        <p>Every reported L2 round anchors on your own project. Prepare one architecture you can draw on a whiteboard in ninety seconds, with two decisions you can defend and one you would now make differently.</p>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ============ C# & .NET ============ -->
+<section id="csharp">
+  <div class="sec-head"><h2>C# &amp; .NET fundamentals</h2><span class="count">6 questions</span></div>
+  <p class="sec-note">Directly reported: assemblies and their types, C++ interop, .NET Framework questions, and general “are the basics strong” probing.</p>
+
+  <details class="qa">
+    <summary>What is an assembly in .NET, and what are its types?</summary>
+    <div class="body">
+      <p>An assembly is the unit the runtime actually loads. It is the fundamental unit of deployment, versioning, reuse, activation scoping and security permissions, and it ships as a <code>.dll</code> or <code>.exe</code>. To the runtime, a type does not exist outside the context of an assembly.</p>
+      <h4>What is inside one</h4>
+      <ul>
+        <li><strong>Manifest</strong> — assembly name, version, culture, strong-name key, and the list of files and referenced assemblies.</li>
+        <li><strong>Type metadata</strong> — every type and member, which is what reflection and the debugger read.</li>
+        <li><strong>IL</strong> — the compiled intermediate language, JIT-compiled to machine code on first call.</li>
+        <li><strong>Resources</strong> — embedded strings, images, satellite data.</li>
+      </ul>
+      <h4>The types they are asking for</h4>
+      <table>
+        <tr><th>Axis</th><th>Types</th><th>What it means</th></tr>
+        <tr><td>Sharing</td><td>Private / Shared</td><td>Private ships in the app folder. Shared is strong-named and placed in the GAC (.NET Framework only).</td></tr>
+        <tr><td>Structure</td><td>Single-file / Multi-file</td><td>Multi-file assemblies hold several modules with one manifest. .NET Framework only.</td></tr>
+        <tr><td>Creation</td><td>Static / Dynamic</td><td>Static is compiled to disk. Dynamic is emitted in memory at runtime via <code>System.Reflection.Emit</code>.</td></tr>
+        <tr><td>Signing</td><td>Strong-named / Not</td><td>A strong name adds a public key and signature, giving a unique identity and version binding.</td></tr>
+        <tr><td>Role</td><td>Process (.exe) / Library (.dll)</td><td>One has an entry point, the other does not.</td></tr>
+        <tr><td>Localisation</td><td>Satellite</td><td>Culture-specific resources, loaded by the resource manager at runtime.</td></tr>
+      </table>
+      <div class="flag">
+        <span class="lbl">The follow-up that catches people</span>
+        <p>“Does the GAC exist in .NET Core?” No. The GAC and multi-file assemblies are .NET Framework concepts. Modern .NET resolves dependencies per-application through NuGet and the deps file, which is precisely what killed DLL hell. If you answer the question purely in Framework terms, expect this next.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/dotnet/standard/assembly/" target="_blank" rel="noopener">Assemblies in .NET — Microsoft Learn</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Can we use existing C++ code in a .NET application?</summary>
+    <div class="body">
+      <p>Yes, and there are four routes. Pick based on what the C++ actually is, and say why you picked it — that is the real question.</p>
+      <h4>1. P/Invoke — for a flat C-style exported API</h4>
+      <p>Declare the native function in managed code and let the runtime marshal the call. This is the standard answer.</p>
+<pre><code>using System.Runtime.InteropServices;
+
+internal static partial class Native
+{
+    [LibraryImport("geometry.dll", StringMarshalling = StringMarshalling.Utf8)]
+    internal static partial double ComputeVolume(double length, double width, double height);
+}</code></pre>
+      <p><code>LibraryImport</code> is the source-generated form on modern .NET; <code>DllImport</code> is the older attribute and still works. The C++ side must export with <code>extern "C"</code> to avoid name mangling.</p>
+      <h4>2. C++/CLI — for a real C++ class library</h4>
+      <p>A mixed-mode wrapper project that can hold both managed and native types, so you expose a .NET-shaped class and hold the native object inside. Expensive to maintain and <strong>Windows-only</strong>, which is the trade-off to mention.</p>
+      <h4>3. COM interop — if the C++ is already a COM component</h4>
+      <p>Add a reference, the runtime generates the interop assembly, and you call it like a .NET object.</p>
+      <h4>4. Out-of-process — if the native code is unstable or GPL-awkward</h4>
+      <p>Run it as a separate process or service and talk over gRPC, a pipe or a queue. Slower per call, but an access violation in the native code kills that process rather than your web app.</p>
+      <div class="key">
+        <span class="lbl">What they want to hear</span>
+        <p>That you know the costs: marshalling overhead on every crossing, no GC over native memory so ownership must be explicit, a native crash takes down the whole process, and you must match bitness — a 32-bit DLL will not load into a 64-bit worker process.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/dotnet/standard/native-interop/pinvoke" target="_blank" rel="noopener">Platform Invoke (P/Invoke) — Microsoft Learn</a>
+        <a href="https://learn.microsoft.com/en-us/dotnet/standard/native-interop/" target="_blank" rel="noopener">Native interoperability overview</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>.NET Framework vs .NET Core vs .NET 5+ — what is the real difference?</summary>
+    <div class="body">
+      <p>Three generations, one lineage.</p>
+      <table>
+        <tr><th></th><th>.NET Framework</th><th>.NET (Core, 5+)</th></tr>
+        <tr><td>Platform</td><td>Windows only</td><td>Windows, Linux, macOS</td></tr>
+        <tr><td>Deployment</td><td>Machine-wide install, GAC</td><td>Side-by-side, self-contained or framework-dependent</td></tr>
+        <tr><td>Web stack</td><td>ASP.NET MVC on System.Web, tied to IIS</td><td>ASP.NET Core, own Kestrel server, IIS optional as reverse proxy</td></tr>
+        <tr><td>DI</td><td>Bolt-on container</td><td>Built into the host</td></tr>
+        <tr><td>Status</td><td>4.8.x, servicing only</td><td>Active, annual releases</td></tr>
+      </table>
+      <p>The naming step people stumble on: .NET Core 3.1 was followed by .NET 5 — “Core” was dropped from the name, not replaced by a new product. There was no .NET 4 because the version number would have collided with .NET Framework 4.x.</p>
+      <div class="flag">
+        <span class="lbl">If you are still on Framework at work</span>
+        <p>Say so plainly and say what would be involved in moving. Interviewers are far more interested in whether you understand the migration blockers — <code>System.Web</code> dependencies, WCF server, AppDomains, Windows-specific APIs — than in whether your employer is current.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/dotnet/fundamentals/" target="_blank" rel="noopener">.NET fundamentals — Microsoft Learn</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Managed vs unmanaged code, CLR, IL and JIT — walk through what happens to your code</summary>
+    <div class="body">
+      <ol>
+        <li>The C# compiler (Roslyn) produces <strong>IL</strong> plus metadata, packaged into an assembly. It does not produce machine code.</li>
+        <li>At runtime the <strong>CLR</strong> loads the assembly and the <strong>JIT</strong> compiles each method to native code the first time it is called, caching the result for subsequent calls.</li>
+        <li>The CLR provides garbage collection, type safety, exception handling and security. Code running under it is <strong>managed</strong>.</li>
+        <li><strong>Unmanaged</strong> code — a C++ DLL, a COM object — runs outside that, with its own memory management.</li>
+      </ol>
+      <p>Tiered compilation means hot methods get re-jitted at a higher optimisation level after they have proven themselves, so startup is fast and steady-state is fast. ReadyToRun and AOT move some or all of that work to build time.</p>
+      <div class="key">
+        <span class="lbl">Likely follow-up</span>
+        <p>“How does the GC know what to collect?” Generational mark-and-sweep: gen 0 for new short-lived objects collected often and cheaply, survivors promoted to gen 1 and gen 2, and a separate Large Object Heap for allocations over 85,000 bytes. Mention that <code>IDisposable</code> and <code>using</code> exist for unmanaged resources, which the GC does not know how to release.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/dotnet/standard/clr" target="_blank" rel="noopener">Common Language Runtime — Microsoft Learn</a>
+        <a href="https://learn.microsoft.com/en-us/dotnet/standard/garbage-collection/" target="_blank" rel="noopener">Garbage collection fundamentals</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Value types vs reference types, and where each lives</summary>
+    <div class="body">
+      <p>Value types hold the data; reference types hold the address of the data.</p>
+      <ul>
+        <li><strong>Value</strong> — <code>struct</code>, <code>enum</code>, and primitives. Copied on assignment. Usually on the stack, but a value type that is a field of a class lives on the heap inside that object.</li>
+        <li><strong>Reference</strong> — <code>class</code>, <code>interface</code>, <code>delegate</code>, array, <code>string</code>. The variable is on the stack, the object on the heap.</li>
+      </ul>
+      <p><strong>Boxing</strong> wraps a value type in a heap object so it can be treated as <code>object</code>; unboxing extracts it. Both cost an allocation and a copy, which is why generic collections replaced <code>ArrayList</code>.</p>
+      <div class="flag">
+        <span class="lbl">Classic trap</span>
+        <p>“Strings are reference types, so are they mutable?” No — <code>string</code> is a reference type that is immutable. Every concatenation allocates a new string, which is why <code>StringBuilder</code> exists for loops. Expect this to be asked as a trick.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/value-types" target="_blank" rel="noopener">Value types — C# reference</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>What is a delegate, and how do events build on it?</summary>
+    <div class="body">
+      <p>A delegate is a type-safe function pointer — a type whose instances hold a reference to a method with a matching signature. <code>Func&lt;T,TResult&gt;</code>, <code>Action&lt;T&gt;</code> and <code>Predicate&lt;T&gt;</code> are the built-in generic ones, and LINQ is built on them.</p>
+      <p>An <strong>event</strong> is a delegate field with restricted access: outside the declaring type you can only <code>+=</code> and <code>-=</code>, not assign or invoke. That restriction is the whole point — a subscriber cannot wipe out other subscribers or raise the event itself.</p>
+<pre><code>public event EventHandler&lt;StatusChangedEventArgs&gt; StatusChanged;
+
+protected virtual void OnStatusChanged(StatusChangedEventArgs e)
+    =&gt; StatusChanged?.Invoke(this, e);   // null-conditional: no subscribers is legal</code></pre>
+      <div class="key">
+        <span class="lbl">Follow-up worth pre-empting</span>
+        <p>Event handlers are a common managed memory leak: a long-lived publisher holding a reference to a short-lived subscriber keeps the subscriber alive. Always unsubscribe, or the GC cannot collect it.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/events/" target="_blank" rel="noopener">Events — C# programming guide</a>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ============ OOP & SOLID ============ -->
+<section id="oop">
+  <div class="sec-head"><h2>OOP &amp; SOLID</h2><span class="count">4 questions</span></div>
+  <p class="sec-note">Reported as “OOPS implementations”, “SOLID principles” and “abstraction” across multiple rounds. The word <em>implementations</em> matters — they want code, not definitions.</p>
+
+  <details class="qa">
+    <summary>Explain the four OOP pillars — with how each is implemented in C#</summary>
+    <div class="body">
+      <p>Definitions alone score nothing. Attach each to a language feature and a reason.</p>
+      <h4>Encapsulation</h4>
+      <p>State is private; change goes through methods that can enforce invariants. Implemented with access modifiers, properties, and readonly fields. The reason: an object that cannot be put into an invalid state is one you do not have to defend against everywhere else.</p>
+      <h4>Abstraction</h4>
+      <p>Expose what the caller needs, hide how it is done. Implemented with interfaces and abstract classes. In your integration platform this is literally the product: callers see one service contract, the vendor-specific mess sits behind it.</p>
+      <h4>Inheritance</h4>
+      <p>An “is-a” relationship reusing a base implementation. Implemented with <code>: BaseClass</code>, <code>virtual</code> and <code>override</code>. Use sparingly — composition is usually the better default.</p>
+      <h4>Polymorphism</h4>
+      <ul>
+        <li><strong>Compile-time</strong> (overloading) — same name, different parameters, resolved by the compiler.</li>
+        <li><strong>Runtime</strong> (overriding) — <code>virtual</code> / <code>override</code>, resolved through the vtable at execution.</li>
+      </ul>
+      <div class="flag">
+        <span class="lbl">Interface vs abstract class — asked almost every time</span>
+        <p>An abstract class models an “is-a” with shared state and implementation; a class can have only one. An interface is a contract with no state; a class can implement many. Since C# 8, interfaces can carry default implementations — so if you say “interfaces cannot have implementations”, expect to be corrected. The real rule stands anyway: interfaces still cannot hold instance state.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/object-oriented/" target="_blank" rel="noopener">Object-oriented programming in C# — Microsoft Learn</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Abstraction vs encapsulation — they sound the same, so what is the difference?</summary>
+    <div class="body">
+      <p>This is asked specifically to see whether you have memorised or understood.</p>
+      <ul>
+        <li><strong>Abstraction is about design</strong> — deciding <em>what</em> to expose. It happens when you define the interface. It solves complexity.</li>
+        <li><strong>Encapsulation is about enforcement</strong> — hiding <em>how</em> the internals work and guarding them. It happens when you choose access modifiers. It solves integrity.</li>
+      </ul>
+      <p>One sentence that lands: abstraction removes decisions the caller should not have to make; encapsulation removes access the caller should not have.</p>
+<pre><code>public interface IDocumentStore              // abstraction: the what
+{
+    Task&lt;Uri&gt; UploadAsync(Stream content, string path);
+}
+
+public sealed class AccDocumentStore : IDocumentStore
+{
+    private readonly HttpClient _http;       // encapsulation: the how, locked away
+    private string? _cachedToken;
+
+    public async Task&lt;Uri&gt; UploadAsync(Stream content, string path) { /* ... */ }
+}</code></pre>
+      <p>The caller cannot reach <code>_cachedToken</code> (encapsulation) and does not know the store is ACC at all (abstraction).</p>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Walk through SOLID with a real violation and fix for each</summary>
+    <div class="body">
+      <h4>S — Single responsibility</h4>
+      <p>A class has one reason to change. A controller that validates, maps, calls the vendor API and writes audit rows has four. Split into validator, mapper, client and audit sink.</p>
+      <h4>O — Open/closed</h4>
+      <p>Open to extension, closed to modification. A <code>switch</code> over vendor type that you edit for every new vendor is the violation; a registered set of <code>IVendorClient</code> implementations resolved by key is the fix.</p>
+      <h4>L — Liskov substitution</h4>
+      <p>A subtype must be usable anywhere the base is. The textbook violation is a derived class that throws <code>NotSupportedException</code> on an inherited method — a read-only collection inheriting a mutable one. If a caller has to check the concrete type, you broke it.</p>
+      <h4>I — Interface segregation</h4>
+      <p>No client should depend on methods it does not use. A fat <code>IRepository</code> with twenty methods forces every implementation and every test double to deal with all of them. Narrow interfaces per use case instead.</p>
+      <h4>D — Dependency inversion</h4>
+      <p>High-level modules depend on abstractions, not concretions. The service takes <code>IDocumentStore</code>, not <code>AccDocumentStore</code>. This is what makes ASP.NET Core’s built-in container useful rather than ceremonial.</p>
+      <div class="key">
+        <span class="lbl">The strong answer</span>
+        <p>Pick <em>one</em> and tell a real story — where you felt the pain, what you changed, what it cost. A candidate who recites five definitions sounds like everyone. A candidate who says “our vendor switch statement was an open/closed violation and here is what it cost us on the third integration” sounds like an engineer.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/architectural-principles" target="_blank" rel="noopener">Architectural principles — .NET architecture guide</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Dependency injection: the three lifetimes, and the bug that comes from mixing them</summary>
+    <div class="body">
+      <table>
+        <tr><th>Lifetime</th><th>Instances</th><th>Use for</th></tr>
+        <tr><td><code>AddSingleton</code></td><td>One for the app</td><td>Stateless, thread-safe services; caches; config</td></tr>
+        <tr><td><code>AddScoped</code></td><td>One per request</td><td><code>DbContext</code>, per-request context, unit of work</td></tr>
+        <tr><td><code>AddTransient</code></td><td>One per resolution</td><td>Lightweight, stateless helpers</td></tr>
+      </table>
+      <div class="flag">
+        <span class="lbl">Captive dependency — the question behind the question</span>
+        <p>Injecting a scoped <code>DbContext</code> into a singleton captures it for the lifetime of the application. You then get a context shared across requests and threads, which produces intermittent concurrency exceptions and stale tracked entities — the hardest class of bug to reproduce. ASP.NET Core’s scope validation catches it at startup in Development. If you need a scoped service from a singleton, inject <code>IServiceScopeFactory</code> and create a scope per unit of work.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection" target="_blank" rel="noopener">Dependency injection in ASP.NET Core</a>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ============ PATTERNS ============ -->
+<section id="patterns">
+  <div class="sec-head"><h2>Design patterns</h2><span class="count">4 questions</span></div>
+  <p class="sec-note">Reported in three separate accounts, including the direct question “which design pattern was used in your project”. That one is about your project, not the Gang of Four.</p>
+
+  <details class="qa">
+    <summary>Which design pattern was used in your project?</summary>
+    <div class="body">
+      <p>This is the highest-risk question in the set, because the wrong answer is easy to give. Naming a pattern you did not deliberately choose invites a follow-up you cannot answer.</p>
+      <h4>Answer in four beats</h4>
+      <ol>
+        <li><strong>The problem</strong> — what was painful before.</li>
+        <li><strong>The pattern</strong> — named, correctly.</li>
+        <li><strong>The implementation</strong> — the actual types involved.</li>
+        <li><strong>The cost</strong> — what it made worse, because everything does.</li>
+      </ol>
+      <h4>A worked example from an integration platform</h4>
+      <p><em>Problem:</em> several products each integrated directly with vendor APIs, so a vendor contract change meant edits in every consumer.</p>
+      <p><em>Pattern:</em> Adapter behind a Strategy, resolved by a Factory. Each vendor gets an adapter implementing one internal contract; the factory resolves the right adapter per tenant configuration.</p>
+      <p><em>Implementation:</em> <code>IVendorClient</code> as the contract, one implementation per vendor registered by key, resolved at runtime from the tenant’s stored configuration.</p>
+      <p><em>Cost:</em> the shared contract becomes a lowest common denominator. When one vendor exposes a capability the others do not, you either leak it through the abstraction or lose it. That tension is real and saying so is what makes the answer credible.</p>
+      <div class="key">
+        <span class="lbl">Patterns you have almost certainly used without naming them</span>
+        <p>Repository and Unit of Work (<code>DbContext</code> is both), Dependency Injection, Options, Middleware chain (Chain of Responsibility), Mediator if you use MediatR, Decorator for caching or retry layers, Factory for anything resolved by key. Scan your own codebase before the interview and pick two you can defend.</p>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Singleton — implement it thread-safely, and say when not to use it</summary>
+    <div class="body">
+      <p>The canonical C# implementation uses <code>Lazy&lt;T&gt;</code>, which is thread-safe by default:</p>
+<pre><code>public sealed class ConnectionRegistry
+{
+    private static readonly Lazy&lt;ConnectionRegistry&gt; _instance =
+        new(() =&gt; new ConnectionRegistry());
+
+    public static ConnectionRegistry Instance =&gt; _instance.Value;
+
+    private ConnectionRegistry() { }   // private ctor: no outside construction
+}</code></pre>
+      <p>The older double-checked locking version with a <code>volatile</code> field is worth knowing because interviewers still ask for it, but <code>Lazy&lt;T&gt;</code> is what you would ship.</p>
+      <div class="flag">
+        <span class="lbl">The answer that separates seniors</span>
+        <p>In a modern ASP.NET Core app you almost never hand-roll a singleton — you register the type with <code>AddSingleton</code> and let the container own the lifetime. That keeps it testable and injectable, whereas a static <code>Instance</code> property is a hidden global dependency you cannot substitute in a test. Say this. It shows you know the pattern <em>and</em> why the framework superseded the hand-rolled form.</p>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Factory, Strategy, Repository, Decorator — when does each apply?</summary>
+    <div class="body">
+      <table>
+        <tr><th>Pattern</th><th>Problem it solves</th><th>Smell that calls for it</th></tr>
+        <tr><td>Factory / Abstract Factory</td><td>Creating one of several implementations without the caller knowing which</td><td><code>new</code> inside a <code>switch</code></td></tr>
+        <tr><td>Strategy</td><td>Swapping an algorithm at runtime</td><td>A method with a mode flag and branching behaviour</td></tr>
+        <tr><td>Repository</td><td>Separating query concerns from domain logic</td><td>Raw SQL or LINQ-to-entities inside controllers</td></tr>
+        <tr><td>Decorator</td><td>Adding behaviour without touching the original</td><td>Caching, retry or logging copy-pasted into every implementation</td></tr>
+        <tr><td>Chain of Responsibility</td><td>A pipeline where each step may handle or pass on</td><td>Deeply nested conditionals over request state</td></tr>
+        <tr><td>Observer</td><td>Notifying many consumers of a state change</td><td>Callers polling for changes</td></tr>
+      </table>
+      <p>Decorator is worth an explicit mention because ASP.NET Core middleware and <code>DelegatingHandler</code> on <code>HttpClient</code> are both production examples of it that you have used whether or not you called it that.</p>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Is Repository still worth it on top of EF Core?</summary>
+    <div class="body">
+      <p>A genuinely contested question, and interviewers ask it to see whether you hold a view or recite a rule.</p>
+      <p><strong>The case against:</strong> <code>DbContext</code> already is a Unit of Work and <code>DbSet&lt;T&gt;</code> already is a repository. Wrapping them usually produces a thin pass-through that leaks <code>IQueryable</code> anyway, and any repository that returns <code>IQueryable</code> has abstracted nothing.</p>
+      <p><strong>The case for:</strong> it gives a seam for testing without a database, concentrates complex query logic in one place, and keeps provider-specific behaviour out of the domain.</p>
+      <p><strong>The defensible position:</strong> do not add a generic <code>IRepository&lt;T&gt;</code> over everything. Do add focused, intention-revealing abstractions where a query is genuinely complex or reused. Name the methods after what the domain means, not after CRUD.</p>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/infrastructure-persistence-layer-design" target="_blank" rel="noopener">Infrastructure persistence layer design — .NET architecture guide</a>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ============ ASYNC ============ -->
+<section id="async">
+  <div class="sec-head"><h2>Async &amp; concurrency</h2><span class="count">3 questions</span></div>
+  <p class="sec-note">Reported directly as “Async”. In .NET rounds this is reliably where candidates who have only used <code>async</code> by copying surrounding code get found out.</p>
+
+  <details class="qa">
+    <summary>What actually happens when you await something?</summary>
+    <div class="body">
+      <p>The key insight, and the one they are testing: <strong>async is about releasing the thread, not about using more threads.</strong></p>
+      <ol>
+        <li>The method runs synchronously until the first <code>await</code>.</li>
+        <li>If the awaited task is already complete, execution just continues — no suspension, no cost.</li>
+        <li>If not, the compiler-generated state machine registers a continuation and <strong>returns the thread to the pool</strong>. No thread is blocked waiting.</li>
+        <li>When the I/O completes, the continuation is scheduled and the rest of the method runs — possibly on a different thread.</li>
+      </ol>
+      <p>For a web server that is the whole point: a thread parked on a database call is a thread not serving another request. Async I/O is what lets a small thread pool serve high concurrency.</p>
+      <div class="sim">
+        <div class="sim-head">Thread occupancy — 100 requests, 200 ms I/O each</div>
+        <div class="sim-body">
+          <div class="ctl">
+            <label for="asyncThreads">Thread pool size</label>
+            <input type="range" id="asyncThreads" min="4" max="64" value="16" step="4">
+            <span class="mono" id="asyncThreadsVal">16</span>
+          </div>
+          <div class="out" id="asyncOut"></div>
+        </div>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/dotnet/csharp/asynchronous-programming/" target="_blank" rel="noopener">Asynchronous programming with async and await — Microsoft Learn</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Why does .Result or .Wait() deadlock, and what is ConfigureAwait(false) for?</summary>
+    <div class="body">
+      <p>A classic question, and one with a version-dependent answer — say both halves.</p>
+      <h4>The deadlock</h4>
+      <p>In a framework with a synchronisation context that allows only one thread at a time — classic ASP.NET and WinForms/WPF — this sequence deadlocks:</p>
+      <ol>
+        <li>A request thread calls <code>SomethingAsync().Result</code> and blocks, <em>holding</em> the context.</li>
+        <li>The async method completes and tries to resume on the captured context.</li>
+        <li>The context is occupied by the blocked thread. Each waits for the other. Forever.</li>
+      </ol>
+      <p><code>ConfigureAwait(false)</code> tells the continuation not to resume on the captured context, which breaks the cycle.</p>
+      <div class="flag">
+        <span class="lbl">The modern nuance that earns the point</span>
+        <p>ASP.NET Core has <strong>no synchronisation context</strong>, so this particular deadlock does not occur there. But blocking on async code is still wrong — it burns a pool thread for the duration and can cause pool starvation under load. <code>ConfigureAwait(false)</code> remains correct practice in <em>library</em> code, where you do not control the caller’s context. The rule to state: async all the way down, and never block on async.</p>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Task vs Thread, and when do you actually want Task.Run?</summary>
+    <div class="body">
+      <ul>
+        <li>A <strong>Thread</strong> is an OS resource, roughly a megabyte of stack, expensive to create.</li>
+        <li>A <strong>Task</strong> is a promise of a future result, usually serviced by the thread pool, and may not involve a dedicated thread at all.</li>
+      </ul>
+      <p><code>Task.Run</code> pushes work onto a pool thread. It is right for <strong>CPU-bound</strong> work you want off the current thread — in a desktop app, off the UI thread. It is <strong>wrong</strong> for I/O: wrapping a database call in <code>Task.Run</code> does not make it asynchronous, it just occupies a pool thread while the original one waits.</p>
+<pre><code>// Wrong: burns a pool thread, achieves nothing
+var rows = await Task.Run(() =&gt; db.Elements.ToList());
+
+// Right: true async I/O, no thread held
+var rows = await db.Elements.ToListAsync(ct);</code></pre>
+      <div class="key">
+        <span class="lbl">Related terms worth having ready</span>
+        <p><code>Parallel.ForEachAsync</code> for bounded concurrent work, <code>SemaphoreSlim</code> to throttle it, <code>CancellationToken</code> threaded through every async call, and <code>IAsyncEnumerable&lt;T&gt;</code> for streaming results rather than buffering them.</p>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ============ LINQ ============ -->
+<section id="linq">
+  <div class="sec-head"><h2>LINQ</h2><span class="count">3 questions</span></div>
+  <p class="sec-note">Named explicitly in the L1 round and again in a second account. Deferred execution is the question that comes up most.</p>
+
+  <details class="qa">
+    <summary>Deferred vs immediate execution — when does a LINQ query actually run?</summary>
+    <div class="body">
+      <p>Building a query does nothing. The query runs when you enumerate it.</p>
+      <ul>
+        <li><strong>Deferred</strong> — <code>Where</code>, <code>Select</code>, <code>OrderBy</code>, <code>Take</code>, <code>Skip</code>, <code>GroupBy</code>. These return a new query object.</li>
+        <li><strong>Immediate</strong> — <code>ToList</code>, <code>ToArray</code>, <code>Count</code>, <code>First</code>, <code>Single</code>, <code>Any</code>, <code>Sum</code>, <code>Max</code>. These force enumeration now.</li>
+      </ul>
+      <p>The consequence people get caught by: a deferred query re-executes <em>every time</em> you enumerate it. Against a database that is a round trip per enumeration.</p>
+      <div class="sim">
+        <div class="sim-head">Deferred execution — watch when the source is actually read</div>
+        <div class="sim-body">
+          <div class="ctl">
+            <button class="btn" id="defRun">Run the sequence</button>
+            <button class="btn" id="defReset">Reset</button>
+          </div>
+          <div class="out" id="defOut">Press “Run the sequence”.</div>
+        </div>
+      </div>
+      <div class="flag">
+        <span class="lbl">The classic gotcha</span>
+        <p>A deferred query captures <em>variables</em>, not values. Modify the filter variable after building the query and before enumerating it, and the query uses the new value. Materialise with <code>ToList()</code> when you want the result frozen.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/dotnet/csharp/linq/" target="_blank" rel="noopener">LINQ in C# — Microsoft Learn</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>IEnumerable vs IQueryable — why does it matter so much with a database?</summary>
+    <div class="body">
+      <p>This single distinction is responsible for a large share of real .NET performance incidents.</p>
+      <table>
+        <tr><th></th><th>IEnumerable&lt;T&gt;</th><th>IQueryable&lt;T&gt;</th></tr>
+        <tr><td>Holds</td><td>A delegate</td><td>An expression tree</td></tr>
+        <tr><td>Filtering happens</td><td>In memory, in your process</td><td>In the database, translated to SQL</td></tr>
+        <tr><td>Data transferred</td><td>Everything, then filtered</td><td>Only matching rows</td></tr>
+      </table>
+<pre><code>// Disaster: AsEnumerable() pulls the whole table into memory first
+var recent = db.Documents.AsEnumerable()
+                .Where(d =&gt; d.CreatedUtc &gt; cutoff)
+                .ToList();
+
+// Correct: Where is translated into the SQL WHERE clause
+var recent = await db.Documents
+                .Where(d =&gt; d.CreatedUtc &gt; cutoff)
+                .ToListAsync(ct);</code></pre>
+      <p>Returning <code>IEnumerable&lt;T&gt;</code> from a repository method silently does the same thing — every caller’s filter runs in memory. That is the practical argument against leaky repository abstractions.</p>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>First vs FirstOrDefault vs Single vs SingleOrDefault</summary>
+    <div class="body">
+      <table>
+        <tr><th>Method</th><th>No match</th><th>More than one match</th></tr>
+        <tr><td><code>First</code></td><td>Throws</td><td>Returns the first</td></tr>
+        <tr><td><code>FirstOrDefault</code></td><td>Returns default</td><td>Returns the first</td></tr>
+        <tr><td><code>Single</code></td><td>Throws</td><td>Throws</td></tr>
+        <tr><td><code>SingleOrDefault</code></td><td>Returns default</td><td>Throws</td></tr>
+      </table>
+      <p>The performance footnote that impresses: <code>Single</code> must read a second row to prove uniqueness, so against a database it is strictly more work than <code>First</code>. Use <code>Single</code> when the uniqueness is an invariant you want violently enforced — a primary key lookup where two rows means corrupted data. Use <code>First</code> with an explicit <code>OrderBy</code> when “the top one” is what you mean.</p>
+      <div class="flag">
+        <span class="lbl">Related trap</span>
+        <p><code>Count() &gt; 0</code> versus <code>Any()</code>. <code>Any()</code> stops at the first match; <code>Count()</code> counts everything. On a large table that is the difference between <code>SELECT TOP 1</code> and a full count.</p>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ============ EF ============ -->
+<section id="ef">
+  <div class="sec-head"><h2>Entity Framework</h2><span class="count">3 questions</span></div>
+  <p class="sec-note">Reported as “EF” and “EF performance”. In practice this round is almost always about N+1 and tracking.</p>
+
+  <details class="qa">
+    <summary>What is the N+1 problem, and how do you fix it?</summary>
+    <div class="body">
+      <p>One query to fetch N parents, then one more query per parent to fetch its children. Fifty parents means fifty-one round trips — each with network latency, each holding a connection.</p>
+<pre><code>// N+1: lazy loading fires a query per iteration
+var projects = await db.Projects.ToListAsync(ct);
+foreach (var p in projects)
+    Console.WriteLine(p.Documents.Count);   // one SELECT per project
+
+// Fixed: one round trip
+var projects = await db.Projects
+    .Include(p =&gt; p.Documents)
+    .ToListAsync(ct);</code></pre>
+      <div class="sim">
+        <div class="sim-head">Round trips: lazy loading vs Include</div>
+        <div class="sim-body">
+          <div class="ctl">
+            <label for="n1Count">Parent rows</label>
+            <input type="range" id="n1Count" min="1" max="200" value="50">
+            <span class="mono" id="n1CountVal">50</span>
+            <label for="n1Lat">Latency per trip (ms)</label>
+            <input type="number" id="n1Lat" value="4" min="1" max="50" style="width:4.5rem">
+          </div>
+          <div class="out" id="n1Out"></div>
+        </div>
+      </div>
+      <h4>When Include is not the answer</h4>
+      <p>A single query with several <code>Include</code>s on one-to-many relationships produces a cartesian explosion — the parent columns are duplicated across every child row. EF Core calls this cartesian explosion and offers <code>AsSplitQuery()</code>, which loads the related collections with separate queries instead. Trade-off: more round trips, far less duplicated data. Knowing both sides of this is a strong signal.</p>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/ef/core/performance/efficient-querying" target="_blank" rel="noopener">Efficient querying — EF Core docs</a>
+        <a href="https://learn.microsoft.com/en-us/ef/core/querying/single-split-queries" target="_blank" rel="noopener">Single vs split queries</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>What does AsNoTracking do, and when should you use it?</summary>
+    <div class="body">
+      <p>By default EF Core tracks every entity it materialises, keeping a snapshot so <code>SaveChanges</code> can work out what changed. That costs memory and CPU proportional to the result set.</p>
+      <p><code>AsNoTracking()</code> skips it. For a read-only query — any GET endpoint, any report — it is free performance and should be the default.</p>
+<pre><code>var rows = await db.Elements
+    .AsNoTracking()
+    .Where(e =&gt; e.LevelId == levelId)
+    .Select(e =&gt; new ElementDto(e.Id, e.Name, e.Category))   // project, do not materialise entities
+    .ToListAsync(ct);</code></pre>
+      <p>The <code>Select</code> matters as much as the tracking. Projecting to a DTO means the generated SQL selects only those columns, instead of every column of the table.</p>
+      <div class="key">
+        <span class="lbl">Full EF performance checklist</span>
+        <p><code>AsNoTracking</code> for reads · project with <code>Select</code> rather than returning entities · <code>AsSplitQuery</code> when includes multiply rows · paginate with keyset rather than large <code>Skip</code> · batch writes rather than saving in a loop · compiled queries for very hot paths · and always read the generated SQL before deciding anything.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/ef/core/change-tracking/" target="_blank" rel="noopener">Change tracking — EF Core docs</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Lazy, eager and explicit loading — which, and why</summary>
+    <div class="body">
+      <ul>
+        <li><strong>Eager</strong> (<code>Include</code>) — fetch related data up front, in the same query. Predictable. The default choice when you know you need the children.</li>
+        <li><strong>Explicit</strong> (<code>Entry(...).Collection(...).LoadAsync()</code>) — fetch on demand, but visibly, in code you wrote.</li>
+        <li><strong>Lazy</strong> — fetch automatically on property access, via proxies. Convenient and the usual cause of accidental N+1, because the queries are invisible at the call site.</li>
+      </ul>
+      <p>The position to hold: lazy loading is off by default in EF Core for a reason, and in a web API it should generally stay off. A query firing inside a serialisation loop is a production incident waiting to happen.</p>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/ef/core/querying/related-data/" target="_blank" rel="noopener">Loading related data — EF Core docs</a>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ============ SQL ============ -->
+<section id="sql">
+  <div class="sec-head"><h2>SQL</h2><span class="count">4 questions</span></div>
+  <p class="sec-note">Reported in three accounts: nth highest salary with conditions, performance tuning, and general SQL in the L1 round.</p>
+
+  <details class="qa">
+    <summary>Write a query to find the nth highest salary — with conditions</summary>
+    <div class="body">
+      <p>Interviewers ask this because there are four valid answers and the differences between them are where the real discussion is.</p>
+      <h4>1. DENSE_RANK — the answer to give first</h4>
+<pre><code>WITH Ranked AS (
+    SELECT EmployeeId, Name, DepartmentId, Salary,
+           DENSE_RANK() OVER (ORDER BY Salary DESC) AS rnk
+    FROM   Employees
+    WHERE  IsActive = 1            -- the "with some conditions" part
+)
+SELECT EmployeeId, Name, Salary
+FROM   Ranked
+WHERE  rnk = @n;</code></pre>
+      <h4>2. Nth highest per department — the usual follow-up</h4>
+      <p>Add <code>PARTITION BY</code>. This is the modification they are driving at, so have it ready:</p>
+<pre><code>WITH Ranked AS (
+    SELECT EmployeeId, Name, DepartmentId, Salary,
+           DENSE_RANK() OVER (PARTITION BY DepartmentId ORDER BY Salary DESC) AS rnk
+    FROM   Employees
+    WHERE  IsActive = 1
+)
+SELECT DepartmentId, EmployeeId, Name, Salary
+FROM   Ranked
+WHERE  rnk = @n
+ORDER  BY DepartmentId;</code></pre>
+      <h4>3. OFFSET/FETCH — only correct without ties</h4>
+<pre><code>SELECT DISTINCT Salary
+FROM   Employees
+ORDER  BY Salary DESC
+OFFSET @n - 1 ROWS FETCH NEXT 1 ROWS ONLY;</code></pre>
+      <h4>4. Correlated subquery — the classic, and the slow one</h4>
+<pre><code>SELECT MIN(Salary) FROM (
+    SELECT DISTINCT TOP (@n) Salary FROM Employees ORDER BY Salary DESC
+) AS t;</code></pre>
+      <div class="flag">
+        <span class="lbl">RANK vs DENSE_RANK vs ROW_NUMBER — say this unprompted</span>
+        <p>With salaries 100, 90, 90, 80: <code>ROW_NUMBER</code> gives 1,2,3,4 — arbitrary among ties. <code>RANK</code> gives 1,2,2,<strong>4</strong> — it skips. <code>DENSE_RANK</code> gives 1,2,2,<strong>3</strong> — no gaps. So “3rd highest salary” means 80 under DENSE_RANK and nothing at all under RANK. Stating which semantics you chose, and why, is the entire point of the question.</p>
+      </div>
+      <div class="sim">
+        <div class="sim-head">Ranking functions on tied salaries</div>
+        <div class="sim-body">
+          <div class="ctl">
+            <label for="salInput">Salaries</label>
+            <input type="text" id="salInput" value="100,90,90,80,75,75,60" style="width:14rem">
+            <label for="nth">n</label>
+            <input type="number" id="nth" value="3" min="1" max="10" style="width:4rem">
+          </div>
+          <div class="out" id="salOut"></div>
+        </div>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/sql/t-sql/functions/dense-rank-transact-sql" target="_blank" rel="noopener">DENSE_RANK (Transact-SQL) — Microsoft Learn</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>How do you approach SQL performance tuning?</summary>
+    <div class="body">
+      <p>Answer as a process, not a list of tricks. A process is what a senior is being hired for.</p>
+      <h4>1. Find the actual offender</h4>
+      <p>Query Store on SQL Server gives you historical regressed queries, execution counts and resource use. Without it you are guessing. Also look at wait statistics — they tell you whether you are blocked on CPU, I/O or locks, and those three have different fixes.</p>
+      <h4>2. Read the execution plan</h4>
+      <p>The things to look for: clustered index scan where you expected a seek, key lookups repeated many times, a warning triangle for implicit conversion, and a large gap between estimated and actual rows, which usually means stale statistics or a non-sargable predicate.</p>
+      <h4>3. Fix the common causes in order</h4>
+      <ul>
+        <li><strong>Non-sargable predicates</strong> — <code>WHERE YEAR(CreatedUtc) = 2026</code> cannot use an index. Rewrite as a range: <code>&gt;= '2026-01-01' AND &lt; '2027-01-01'</code>.</li>
+        <li><strong>Implicit conversion</strong> — an <code>nvarchar</code> parameter against a <code>varchar</code> column forces a scan. Match the types.</li>
+        <li><strong>Missing covering index</strong> — add the filter columns as keys and the selected columns as <code>INCLUDE</code> to remove key lookups.</li>
+        <li><strong><code>SELECT *</code></strong> — defeats covering indexes and moves columns nobody reads.</li>
+        <li><strong>Parameter sniffing</strong> — one plan cached for a skewed parameter. <code>OPTIMIZE FOR UNKNOWN</code>, <code>RECOMPILE</code>, or fix the statistics.</li>
+      </ul>
+      <h4>4. Verify, then stop</h4>
+      <p>Measure after the change with the same tooling. An index that fixes a read and slows every write is a loss you must be able to see.</p>
+      <div class="key">
+        <span class="lbl">Clustered vs non-clustered — asked as a sub-question</span>
+        <p>A clustered index <em>is</em> the table, sorted by its key — one per table. A non-clustered index is a separate structure with a pointer back, so it may need a key lookup to fetch columns it does not cover. That lookup is why covering indexes matter.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/sql/relational-databases/performance/monitoring-performance-by-using-the-query-store" target="_blank" rel="noopener">Query Store — Microsoft Learn</a>
+        <a href="https://learn.microsoft.com/en-us/sql/relational-databases/indexes/clustered-and-nonclustered-indexes-described" target="_blank" rel="noopener">Clustered and nonclustered indexes</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Joins, and the ones people get wrong</summary>
+    <div class="body">
+      <ul>
+        <li><strong>INNER</strong> — rows matching on both sides.</li>
+        <li><strong>LEFT</strong> — all left rows, nulls where the right has no match.</li>
+        <li><strong>RIGHT</strong> — the mirror, rarely used because a LEFT reads better.</li>
+        <li><strong>FULL OUTER</strong> — everything from both, nulls where unmatched.</li>
+        <li><strong>CROSS</strong> — cartesian product. Deliberate in a calendar table, a bug everywhere else.</li>
+        <li><strong>CROSS / OUTER APPLY</strong> — a correlated join against a table-valued expression. The right answer for top-N-per-group.</li>
+      </ul>
+      <div class="flag">
+        <span class="lbl">The trap</span>
+        <p>Putting a condition on the right table in the <code>WHERE</code> clause of a LEFT JOIN silently converts it to an INNER JOIN, because <code>NULL = anything</code> is not true. If you want to filter the right side and keep unmatched left rows, the condition belongs in the <code>ON</code> clause.</p>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>ACID, isolation levels, and what causes a deadlock</summary>
+    <div class="body">
+      <p><strong>ACID</strong>: Atomicity — all or nothing. Consistency — constraints hold before and after. Isolation — concurrent transactions do not corrupt each other. Durability — committed means survived a crash.</p>
+      <table>
+        <tr><th>Isolation level</th><th>Prevents</th><th>Still allows</th></tr>
+        <tr><td>Read Uncommitted</td><td>Nothing</td><td>Dirty reads</td></tr>
+        <tr><td>Read Committed <em>(default)</em></td><td>Dirty reads</td><td>Non-repeatable reads, phantoms</td></tr>
+        <tr><td>Repeatable Read</td><td>Non-repeatable reads</td><td>Phantoms</td></tr>
+        <tr><td>Serializable</td><td>Everything</td><td>— (lowest concurrency)</td></tr>
+        <tr><td>Snapshot</td><td>Readers blocking writers</td><td>Update conflicts, tempdb cost</td></tr>
+      </table>
+      <p>A <strong>deadlock</strong> is two transactions each holding a lock the other needs. SQL Server detects the cycle and kills the cheaper one as the victim. Prevention: access tables in a consistent order everywhere, keep transactions short, avoid user interaction inside one, and consider <code>READ_COMMITTED_SNAPSHOT</code> to stop readers blocking writers. On the application side, retry the victim — a deadlock victim is a transient fault, not a bug to escalate.</p>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/sql/relational-databases/sql-server-transaction-locking-and-row-versioning-guide" target="_blank" rel="noopener">Transaction locking and row versioning guide</a>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ============ ASP.NET ============ -->
+<section id="aspnet">
+  <div class="sec-head"><h2>ASP.NET Core MVC &amp; Web API</h2><span class="count">4 questions</span></div>
+  <p class="sec-note">Reported as “.NET core MVC questions”, “API optimization”, and the specific question about parameterized constructors on controllers.</p>
+
+  <details class="qa">
+    <summary>Can we have an MVC controller with a parameterized constructor?</summary>
+    <div class="body">
+      <p>Yes — and it is the normal, recommended design, not an edge case. This question is testing whether you understand how controllers are created.</p>
+      <p>Controllers are not constructed by you. The <code>IControllerActivator</code>, backed by the DI container, constructs them per request and supplies constructor arguments from registered services.</p>
+<pre><code>[ApiController]
+[Route("api/[controller]")]
+public class ElementsController : ControllerBase
+{
+    private readonly IElementService _elements;
+    private readonly ILogger&lt;ElementsController&gt; _logger;
+
+    public ElementsController(IElementService elements, ILogger&lt;ElementsController&gt; logger)
+    {
+        _elements = elements;
+        _logger   = logger;
+    }
+}</code></pre>
+      <h4>The things that actually go wrong</h4>
+      <ul>
+        <li><strong>Service not registered</strong> → <code>InvalidOperationException: Unable to resolve service for type …</code> at request time. This is what the interviewer is fishing for.</li>
+        <li><strong>Two public constructors</strong> → the activator cannot choose. Keep exactly one.</li>
+        <li><strong>A primitive parameter</strong> (a connection string) → not resolvable. Inject <code>IOptions&lt;T&gt;</code> instead.</li>
+        <li><strong>A scoped service in a singleton-held controller</strong> → not an issue, because controllers are themselves transient per request.</li>
+      </ul>
+      <div class="key">
+        <span class="lbl">Bonus that lands well</span>
+        <p>Mention <code>[FromServices]</code> for a dependency only one action needs, and <code>[FromKeyedServices]</code> on modern .NET for keyed resolution — exactly the mechanism for picking a per-tenant vendor client. Keyed services are the clean answer to “how do you resolve one of many implementations at runtime”.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/mvc/controllers/dependency-injection" target="_blank" rel="noopener">Dependency injection into controllers — Microsoft Learn</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Walk through the ASP.NET Core request pipeline</summary>
+    <div class="body">
+      <p>A request passes through ordered middleware, each able to act before and after the next one. It is Chain of Responsibility, and the order is behaviour, not style.</p>
+<pre><code>app.UseExceptionHandler("/error");   // outermost: catches everything below
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+app.UseRouting();                    // decides which endpoint matches
+app.UseCors();
+app.UseAuthentication();             // who are you  — must precede authorization
+app.UseAuthorization();              // may you      — must follow routing
+app.MapControllers();                // terminal</code></pre>
+      <div class="flag">
+        <span class="lbl">The ordering question</span>
+        <p>“What happens if <code>UseAuthorization</code> comes before <code>UseRouting</code>?” Authorization needs the matched endpoint to read its attributes. Without routing having run, there is no endpoint, so policies silently fail to apply — an open endpoint that looks protected. Exception handling goes first precisely because it must wrap everything after it.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/" target="_blank" rel="noopener">ASP.NET Core Middleware — Microsoft Learn</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>How do you optimise a slow Web API?</summary>
+    <div class="body">
+      <p>Reported as “API optimization”. Answer in layers, outside in — and lead with measurement.</p>
+      <h4>Measure first</h4>
+      <p>Server-side duration versus total client time separates your problem from the network’s. Application Insights or OpenTelemetry traces show where the time actually goes: usually the database, sometimes a downstream call, rarely the code you suspected.</p>
+      <h4>Database layer — usually the win</h4>
+      <p>N+1 removal, projection instead of full entities, <code>AsNoTracking</code>, the right index, pagination. See the EF and SQL sections.</p>
+      <h4>Payload</h4>
+      <ul>
+        <li>Return DTOs shaped to the screen, not entity graphs.</li>
+        <li>Paginate everything that can grow. Keyset pagination beats <code>Skip</code> at depth.</li>
+        <li>Enable response compression.</li>
+        <li>Support <code>ETag</code> / <code>If-None-Match</code> so unchanged resources cost a 304.</li>
+      </ul>
+      <h4>Caching, in order of cheapness</h4>
+      <p>Response caching for public GETs · <code>IMemoryCache</code> for per-instance hot data · distributed cache (Redis) when you run more than one instance · and <code>HybridCache</code> on modern .NET, which combines both and solves cache stampede.</p>
+      <h4>Concurrency and I/O</h4>
+      <p>Async all the way down · a pooled <code>IHttpClientFactory</code> client rather than <code>new HttpClient()</code> · parallelise independent downstream calls with <code>Task.WhenAll</code> · move genuinely slow work to a background queue and return <code>202 Accepted</code> with a status URL.</p>
+      <div class="key">
+        <span class="lbl">Tie it to your own work</span>
+        <p>Replacing polling with push is an API optimisation and you have done it. Under a fixed interval the client issues a request every interval per job whether or not anything changed; with push there is one message per actual state change. That is a request-volume argument you can defend without a benchmark.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/performance/caching/overview" target="_blank" rel="noopener">Caching in ASP.NET Core — Microsoft Learn</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>REST basics they will check: verbs, status codes, idempotency</summary>
+    <div class="body">
+      <table>
+        <tr><th>Verb</th><th>Safe</th><th>Idempotent</th><th>Typical success</th></tr>
+        <tr><td>GET</td><td>Yes</td><td>Yes</td><td>200, 304</td></tr>
+        <tr><td>POST</td><td>No</td><td>No</td><td>201 + Location, 202</td></tr>
+        <tr><td>PUT</td><td>No</td><td>Yes</td><td>200, 204</td></tr>
+        <tr><td>PATCH</td><td>No</td><td>No</td><td>200, 204</td></tr>
+        <tr><td>DELETE</td><td>No</td><td>Yes</td><td>204</td></tr>
+      </table>
+      <p>Status codes worth being precise about: <strong>400</strong> malformed request · <strong>401</strong> not authenticated · <strong>403</strong> authenticated but not permitted · <strong>404</strong> not found, also used to hide existence from unauthorised callers · <strong>409</strong> conflict, including optimistic concurrency failure · <strong>422</strong> well-formed but semantically invalid · <strong>429</strong> rate limited · <strong>500</strong> your fault · <strong>503</strong> temporarily unavailable, pair with <code>Retry-After</code>.</p>
+      <p>Use <code>ProblemDetails</code> (RFC 9457) for error bodies rather than inventing a shape — ASP.NET Core produces it out of the box.</p>
+      <div class="ref"><span>Reference</span>
+        <a href="https://www.rfc-editor.org/rfc/rfc9110.html" target="_blank" rel="noopener">RFC 9110 — HTTP Semantics</a>
+        <a href="https://www.rfc-editor.org/rfc/rfc9457.html" target="_blank" rel="noopener">RFC 9457 — Problem Details for HTTP APIs</a>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ============ AUTH ============ -->
+<section id="auth">
+  <div class="sec-head"><h2>Authentication &amp; security</h2><span class="count">3 questions</span></div>
+  <p class="sec-note">Reported as “authentication (OAuth/JWT)”. You own an OAuth orchestration layer, so expect this to go deeper than the definitions.</p>
+
+  <details class="qa">
+    <summary>Explain OAuth 2.0 — roles, grants, and which one to use</summary>
+    <div class="body">
+      <p>Start by naming what it is <em>for</em>: OAuth 2.0 is an <strong>authorization</strong> framework that lets an application obtain limited access to a resource on a user’s behalf, without the user handing over their password.</p>
+      <h4>Four roles</h4>
+      <ul>
+        <li><strong>Resource owner</strong> — the user who owns the data.</li>
+        <li><strong>Client</strong> — your application, requesting access.</li>
+        <li><strong>Authorization server</strong> — issues tokens after authenticating the owner.</li>
+        <li><strong>Resource server</strong> — the API that accepts the token.</li>
+      </ul>
+      <h4>Grants, and the current guidance</h4>
+      <table>
+        <tr><th>Grant</th><th>Use when</th></tr>
+        <tr><td>Authorization code + PKCE</td><td>Any user-facing app. The default for web, SPA and mobile alike.</td></tr>
+        <tr><td>Client credentials</td><td>Service to service, no user involved.</td></tr>
+        <tr><td>Refresh token</td><td>Obtaining a new access token without re-prompting.</td></tr>
+        <tr><td>Device code</td><td>Input-constrained devices.</td></tr>
+        <tr><td><s>Implicit</s>, <s>Password</s></td><td>Deprecated. Saying so is a credibility marker.</td></tr>
+      </table>
+      <div class="key">
+        <span class="lbl">The distinction they probe</span>
+        <p>OAuth 2.0 is authorization. <strong>OpenID Connect</strong> is the thin identity layer on top that adds the <code>id_token</code> and the <code>/userinfo</code> endpoint. If someone says “we use OAuth for login”, they mean OIDC. Getting this right separates people who have read the spec from people who have copied a config.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://www.rfc-editor.org/rfc/rfc6749" target="_blank" rel="noopener">RFC 6749 — The OAuth 2.0 Authorization Framework</a>
+        <a href="https://www.rfc-editor.org/rfc/rfc7636" target="_blank" rel="noopener">RFC 7636 — PKCE</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>What is a JWT, what is inside it, and how do you validate one?</summary>
+    <div class="body">
+      <p>Three base64url segments separated by dots: <code>header.payload.signature</code>.</p>
+<pre><code>{ "alg": "RS256", "typ": "JWT", "kid": "a1b2c3" }        // header
+{ "iss": "https://id.example.com", "aud": "civit-api",
+  "sub": "user-42", "exp": 1790000000, "tid": "tenant-7" }  // payload (claims)
+// signature = RS256( base64url(header) + "." + base64url(payload), privateKey )</code></pre>
+      <h4>Validation — every item matters</h4>
+      <ol>
+        <li><strong>Signature</strong> against the issuer’s published key from the JWKS endpoint, selected by <code>kid</code>.</li>
+        <li><strong>Algorithm</strong> — against an allow-list. Never trust the token’s own <code>alg</code>; <code>alg: none</code> is a historical vulnerability for exactly this reason.</li>
+        <li><strong>Issuer</strong> (<code>iss</code>) and <strong>audience</strong> (<code>aud</code>) — a valid token for a different API must be rejected.</li>
+        <li><strong>Expiry</strong> (<code>exp</code>, <code>nbf</code>) with minimal clock skew.</li>
+      </ol>
+      <div class="flag">
+        <span class="lbl">Say this plainly</span>
+        <p>A JWT is <strong>signed, not encrypted</strong>. Anyone holding it can read the payload. Never put anything secret in claims. The common follow-up — “how do you revoke one?” — has an honest answer: you largely cannot, which is why access tokens are short-lived and revocation is handled at the refresh token. If you need immediate revocation, you need a reference token and introspection instead.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://www.rfc-editor.org/rfc/rfc7519" target="_blank" rel="noopener">RFC 7519 — JSON Web Token</a>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/security/authentication/" target="_blank" rel="noopener">Authentication in ASP.NET Core</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>How do you store third-party tokens safely in a multi-tenant service?</summary>
+    <div class="body">
+      <p>This maps directly onto work you own, so expect it to be pulled from your project description rather than asked abstractly.</p>
+      <ul>
+        <li><strong>Never expose provider tokens to the browser.</strong> The client holds a session identifier; the server exchanges it for the real token. A token that never reaches the client cannot be exfiltrated from it.</li>
+        <li><strong>Encrypt at rest</strong> with a key held outside the database, and keep a key version alongside the ciphertext so rotation does not orphan old rows.</li>
+        <li><strong>Validate ownership on every call</strong> — the tenant in the token must match the tenant that owns the record. Tenant isolation enforced in code, not implied by routing.</li>
+        <li><strong>Serialise refresh.</strong> Concurrent requests hitting an expired token will all try to refresh; without a distributed lock most providers invalidate the losing refresh tokens and you get cascading failures.</li>
+        <li><strong>Log the identifier, never the token.</strong> Structured logs get shipped, indexed and read by people.</li>
+      </ul>
+      <div class="key">
+        <span class="lbl">Anticipate the question under the question</span>
+        <p>“Where does the encryption key live?” is the real test. Encryption with the key next to the connection string in config buys nothing. The acceptable answers are a managed key service, platform key storage, or at minimum an environment-scoped secret with a rotation story.</p>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ============ DSA ============ -->
+<section id="dsa">
+  <div class="sec-head"><h2>DSA &amp; coding problems</h2><span class="count">4 questions</span></div>
+  <p class="sec-note">Reported directly: stock buy/sell max profit, Fibonacci series, string manipulation, plus “level 1 coding questions”. These are whiteboard-level, not competitive programming.</p>
+
+  <details class="qa">
+    <summary>Stock buy and sell — maximum profit</summary>
+    <div class="body">
+      <p>One transaction: buy once, sell once, sell must come after buy. The naive answer is every pair, which is O(n²). The expected answer is one pass.</p>
+      <p><strong>Insight:</strong> at each price, the best profit if you sell today is today’s price minus the cheapest price seen so far. Track that minimum as you go.</p>
+<pre><code>public static int MaxProfit(int[] prices)
+{
+    if (prices is null || prices.Length &lt; 2) return 0;
+
+    int minSoFar = prices[0];
+    int best     = 0;
+
+    for (int i = 1; i &lt; prices.Length; i++)
+    {
+        best     = Math.Max(best, prices[i] - minSoFar);
+        minSoFar = Math.Min(minSoFar, prices[i]);
+    }
+    return best;   // 0 if prices only fall — no trade beats not trading
+}</code></pre>
+      <p>Time O(n), space O(1).</p>
+      <div class="sim">
+        <div class="sim-head">Step through the single pass</div>
+        <div class="sim-body">
+          <div class="ctl">
+            <label for="stockInput">Prices</label>
+            <input type="text" id="stockInput" value="7,1,5,3,6,4" style="width:12rem">
+            <button class="btn" id="stockStep">Step</button>
+            <button class="btn" id="stockAuto">Run</button>
+            <button class="btn" id="stockReset">Reset</button>
+          </div>
+          <div class="bars" id="stockBars"></div>
+          <div class="out" id="stockOut"></div>
+        </div>
+      </div>
+      <div class="flag">
+        <span class="lbl">Follow-ups to have ready</span>
+        <p><strong>Unlimited transactions:</strong> sum every positive day-to-day difference — greedy, still O(n). <strong>At most two transactions:</strong> track four running states (best after first buy, first sell, second buy, second sell). <strong>With a cooldown or fee:</strong> same state-machine shape. Saying “this generalises to a state machine over transactions” is the senior-sounding answer.</p>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Print the Fibonacci series</summary>
+    <div class="body">
+      <p>Reported with the sequence starting 0, 1, 1, 2, 3, 5, 8, 13 — so clarify the starting point before writing, because some variants start at 1, 1.</p>
+      <h4>Iterative — what to write</h4>
+<pre><code>public static IEnumerable&lt;long&gt; Fibonacci(int count)
+{
+    long a = 0, b = 1;
+    for (int i = 0; i &lt; count; i++)
+    {
+        yield return a;
+        (a, b) = (b, a + b);   // tuple swap: no temp variable
+    }
+}</code></pre>
+      <p>O(n) time, O(1) space. The <code>yield return</code> makes it lazy, which is a small signal that you know the language.</p>
+      <h4>Naive recursion — know why it is wrong</h4>
+<pre><code>static long Fib(int n) =&gt; n &lt; 2 ? n : Fib(n - 1) + Fib(n - 2);   // O(2^n)</code></pre>
+      <p>It recomputes the same subproblems exponentially. <code>Fib(45)</code> takes seconds. Memoisation or a bottom-up table fixes it to O(n) — this is the standard introduction to dynamic programming, and saying so shows you know <em>why</em> the naive version is the teaching example.</p>
+      <div class="sim">
+        <div class="sim-head">Iterative vs naive recursion — call counts</div>
+        <div class="sim-body">
+          <div class="ctl">
+            <label for="fibN">n</label>
+            <input type="range" id="fibN" min="1" max="30" value="10">
+            <span class="mono" id="fibNVal">10</span>
+          </div>
+          <div class="out" id="fibOut"></div>
+        </div>
+      </div>
+      <div class="flag">
+        <span class="lbl">Overflow</span>
+        <p><code>int</code> overflows at <code>Fib(47)</code>. Use <code>long</code>, and mention <code>System.Numerics.BigInteger</code> if they push further. Noticing overflow unprompted is a genuine differentiator on a question this simple.</p>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>String manipulation — the ones that actually get asked</summary>
+    <div class="body">
+      <h4>Reverse a string</h4>
+<pre><code>public static string Reverse(string s)
+{
+    var chars = s.ToCharArray();
+    Array.Reverse(chars);
+    return new string(chars);
+}</code></pre>
+      <p>The senior addition: this breaks on surrogate pairs and combining characters. An emoji or an accented character composed of two code units gets corrupted. The correct tool is <code>StringInfo</code> enumerating text elements. Mentioning this unprompted is a strong signal.</p>
+      <h4>Palindrome check, two pointers, O(1) space</h4>
+<pre><code>public static bool IsPalindrome(string s)
+{
+    int i = 0, j = s.Length - 1;
+    while (i &lt; j)
+    {
+        if (!char.IsLetterOrDigit(s[i])) { i++; continue; }
+        if (!char.IsLetterOrDigit(s[j])) { j--; continue; }
+        if (char.ToLowerInvariant(s[i]) != char.ToLowerInvariant(s[j])) return false;
+        i++; j--;
+    }
+    return true;
+}</code></pre>
+      <h4>First non-repeating character</h4>
+<pre><code>public static char? FirstUnique(string s)
+{
+    var counts = new Dictionary&lt;char, int&gt;();
+    foreach (var c in s) counts[c] = counts.GetValueOrDefault(c) + 1;
+    foreach (var c in s) if (counts[c] == 1) return c;
+    return null;
+}</code></pre>
+      <h4>Anagram check</h4>
+      <p>Sort both and compare — O(n log n). Or count characters in a dictionary and compare counts — O(n). Offer both and say which you would ship.</p>
+      <h4>Count word frequency</h4>
+<pre><code>var freq = text.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+               .GroupBy(w =&gt; w.ToLowerInvariant())
+               .ToDictionary(g =&gt; g.Key, g =&gt; g.Count());</code></pre>
+      <div class="key">
+        <span class="lbl">The point they are really checking</span>
+        <p><code>string</code> is immutable, so every concatenation allocates. Building a string in a loop with <code>+=</code> is O(n²) in allocations — use <code>StringBuilder</code>. Almost every string question is a disguised test of whether you know this.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/stringbuilder" target="_blank" rel="noopener">StringBuilder — Microsoft Learn</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Level 1 coding — the rest of the usual set</summary>
+    <div class="body">
+      <p>Reported generically as “level 1 coding questions”. The realistic pool beyond the three named above:</p>
+      <ul>
+        <li><strong>FizzBuzz</strong> — still used as a filter. Write it without hesitating.</li>
+        <li><strong>Find duplicates in an array</strong> — <code>HashSet</code>, O(n).</li>
+        <li><strong>Two sum</strong> — dictionary of complement to index, one pass.</li>
+        <li><strong>Reverse a linked list</strong> — three pointers, iterative.</li>
+        <li><strong>Missing number in 1..n</strong> — expected sum minus actual, or XOR.</li>
+        <li><strong>Second largest element</strong> — one pass with two variables; watch the duplicates case.</li>
+        <li><strong>Balanced parentheses</strong> — a stack.</li>
+        <li><strong>Prime check / factorial</strong> — trial division to √n; factorial overflows fast.</li>
+      </ul>
+      <div class="key">
+        <span class="lbl">Method, not memorisation</span>
+        <p>State your approach before writing. Name the complexity before they ask. Handle null and empty input explicitly — on a level 1 question, the edge cases are most of what is being marked. Then say what you would change if the input were a hundred million elements.</p>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ============ INCIDENT ============ -->
+<section id="incident">
+  <div class="sec-head"><h2>Incident management</h2><span class="count">2 questions</span></div>
+  <p class="sec-note">Reported as “Incident management” and as a specific scenario: a Web API suddenly returning 500s in production.</p>
+
+  <details class="qa">
+    <summary>A Web API suddenly starts returning 500s in production. How do you approach it?</summary>
+    <div class="body">
+      <p>The word <strong>suddenly</strong> is the whole question. Something changed. Your job is to find what, and the order of your steps is what is being graded.</p>
+      <h4>1. Stabilise before diagnosing</h4>
+      <p>If a deployment went out in the window, roll back first and investigate from a healthy state. Restoring service is not the same as finding the cause, and confusing the two is the most common mistake under pressure. Communicate: who is affected, what you know, when you will next update.</p>
+      <h4>2. Characterise the blast radius</h4>
+      <ul>
+        <li>All endpoints or one? One points at a code path; all points at a dependency or infrastructure.</li>
+        <li>All tenants or one? One tenant points at data or configuration specific to them.</li>
+        <li>All instances or one? One points at that host — disk, certificate, a failed deploy.</li>
+        <li>What is the error <em>rate</em>? Intermittent suggests resource exhaustion or a race; total suggests a hard dependency failure.</li>
+      </ul>
+      <h4>3. What changed in the window</h4>
+      <p>Deployment, configuration change, feature flag, certificate expiry, dependency release, a data migration, a scheduled job, or a traffic spike. Line the change log up against the error onset timestamp.</p>
+      <h4>4. Read the actual exception</h4>
+      <p>A 500 is a category, not a cause. Pull the exception type, message and stack from structured logs, filtered by correlation ID so you can follow one failing request end to end. Common culprits in order: a null reference on an unexpected payload shape, a database timeout or deadlock, connection pool exhaustion, an expired secret or certificate, a downstream 500 you did not handle, and out-of-memory.</p>
+      <h4>5. Fix, verify, then write it up</h4>
+      <p>Confirm the error rate returns to baseline. Then a blameless postmortem with a timeline, root cause, and specific actions — including the monitoring gap that let it reach users before you noticed.</p>
+      <div class="key">
+        <span class="lbl">Make it concrete</span>
+        <p>Tie this to real debugging you have done: structured JSON logs with a correlation ID, daily rolling files with retention, separate hosts to isolate. Interviewers can tell the difference between a process someone has read about and one someone has used at 2am.</p>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>What does good logging and observability look like?</summary>
+    <div class="body">
+      <p><strong>Three pillars:</strong> logs (what happened), metrics (how much, how often), traces (how one request moved through the system). You need all three; logs alone cannot tell you where the latency went.</p>
+      <h4>Logging that is actually useful</h4>
+      <ul>
+        <li><strong>Structured, not string-concatenated</strong> — log an event with named properties so it can be queried. <code>_logger.LogWarning("Refresh failed for {TenantId} after {Attempts}", id, n)</code>, not an interpolated sentence.</li>
+        <li><strong>Correlation ID on every entry</strong>, propagated to downstream calls. Without it you cannot reconstruct a single request.</li>
+        <li><strong>Levels used honestly</strong> — Error means someone should look; Warning means it self-healed; Information is flow. Everything logged as Error means nothing is.</li>
+        <li><strong>Never log secrets</strong> — tokens, passwords, personal data. Logs get shipped and indexed.</li>
+        <li><strong>Retention and rotation</strong> — daily rolling with a fixed window, so a disk never fills at the worst moment.</li>
+      </ul>
+      <p>On the metrics side: request rate, error rate, duration percentiles — p95 and p99, never the mean, because the mean hides exactly the tail your users feel.</p>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/dotnet/core/diagnostics/logging-tracing" target="_blank" rel="noopener">Logging and tracing in .NET — Microsoft Learn</a>
+        <a href="https://opentelemetry.io/docs/" target="_blank" rel="noopener">OpenTelemetry documentation</a>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ============ AZURE ============ -->
+<section id="azure">
+  <div class="sec-head"><h2>Azure &amp; Log Analytics</h2><span class="count">2 questions</span></div>
+  <p class="sec-note">Reported as “Log Analytics, Azure questions”. Expect operational framing rather than certification trivia.</p>
+
+  <details class="qa">
+    <summary>What is Log Analytics, and how would you use it during an incident?</summary>
+    <div class="body">
+      <p>Log Analytics is the query surface over a Log Analytics workspace in Azure Monitor — the store that collects telemetry from applications, platform resources and agents. You query it with <strong>KQL</strong> (Kusto Query Language).</p>
+      <p>Application Insights is the application-level telemetry product that writes into the same workspace, which is why <code>requests</code>, <code>dependencies</code>, <code>exceptions</code> and <code>traces</code> are queryable side by side.</p>
+      <h4>Queries worth being able to write</h4>
+<pre><code>// Failure rate by endpoint over the last hour
+requests
+| where timestamp &gt; ago(1h)
+| summarize total = count(),
+            failed = countif(success == false)
+          by name
+| extend failureRate = round(100.0 * failed / total, 2)
+| order by failureRate desc</code></pre>
+<pre><code>// What exceptions started firing, and when
+exceptions
+| where timestamp &gt; ago(6h)
+| summarize count() by type, bin(timestamp, 5m)
+| render timechart</code></pre>
+<pre><code>// Slow dependencies — is it us or them?
+dependencies
+| where timestamp &gt; ago(1h)
+| summarize p95 = percentile(duration, 95), count() by target, type
+| order by p95 desc</code></pre>
+      <p>The incident workflow: find <em>when</em> the error rate changed, find <em>what</em> exception appeared at that moment, then follow one failing request through <code>requests</code> → <code>dependencies</code> → <code>exceptions</code> by operation ID.</p>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/azure/azure-monitor/logs/log-analytics-overview" target="_blank" rel="noopener">Log Analytics overview — Microsoft Learn</a>
+        <a href="https://learn.microsoft.com/en-us/kusto/query/" target="_blank" rel="noopener">Kusto Query Language reference</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Which Azure services would you use, and why that one?</summary>
+    <div class="body">
+      <p>Breadth with a reason beats a service list. Group by the decision.</p>
+      <table>
+        <tr><th>Need</th><th>Service</th><th>Choose it when</th></tr>
+        <tr><td>Host a web API</td><td>App Service</td><td>You want managed hosting without owning orchestration</td></tr>
+        <tr><td></td><td>Container Apps / AKS</td><td>Containerised, needs scaling rules or service mesh</td></tr>
+        <tr><td>Event-driven work</td><td>Azure Functions</td><td>Short, triggered, bursty; you want per-execution billing</td></tr>
+        <tr><td>Queueing</td><td>Service Bus</td><td>Ordering, sessions, dead-lettering, transactions</td></tr>
+        <tr><td></td><td>Storage Queue</td><td>Simple, cheap, at-least-once</td></tr>
+        <tr><td>Event streaming</td><td>Event Hubs</td><td>High-throughput telemetry ingestion</td></tr>
+        <tr><td>Relational data</td><td>Azure SQL</td><td>Transactions and joins</td></tr>
+        <tr><td>Document data</td><td>Cosmos DB</td><td>Global distribution, tunable consistency</td></tr>
+        <tr><td>Blobs</td><td>Blob Storage</td><td>Models, documents, backups; tiering for cold data</td></tr>
+        <tr><td>Secrets</td><td>Key Vault</td><td>Keys, certificates, connection strings — with rotation</td></tr>
+        <tr><td>Identity</td><td>Microsoft Entra ID</td><td>Workforce identity, managed identities for service auth</td></tr>
+        <tr><td>Monitoring</td><td>Azure Monitor / App Insights</td><td>Logs, metrics, traces, alerts</td></tr>
+      </table>
+      <div class="key">
+        <span class="lbl">The answer that signals seniority</span>
+        <p>Managed identity. Say that service-to-service auth should use a managed identity rather than a connection string or client secret, because it removes the credential entirely — nothing to rotate, nothing to leak. That single point tells an interviewer you have operated something, not just deployed it.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/azure/architecture/guide/" target="_blank" rel="noopener">Azure application architecture guide</a>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ============ CI/CD ============ -->
+<section id="cicd">
+  <div class="sec-head"><h2>CI/CD &amp; deployments</h2><span class="count">2 questions</span></div>
+  <p class="sec-note">Reported as “CI/CD” and “deployments” in two separate accounts.</p>
+
+  <details class="qa">
+    <summary>Describe your CI/CD pipeline</summary>
+    <div class="body">
+      <p>Describe stages and gates. A pipeline without gates is a script.</p>
+      <h4>CI — on every pull request</h4>
+      <ol>
+        <li>Restore, build with warnings as errors.</li>
+        <li>Unit tests, with a coverage threshold that fails the build.</li>
+        <li>Static analysis and vulnerable-package scanning.</li>
+        <li>Integration tests against a containerised database.</li>
+        <li>Publish a versioned artifact — <strong>built once</strong>, then promoted unchanged through every environment.</li>
+      </ol>
+      <h4>CD — promote the same artifact</h4>
+      <ol>
+        <li>Deploy to dev automatically.</li>
+        <li>Staging with smoke tests and an approval gate.</li>
+        <li>Production with a deployment strategy and a monitored rollback window.</li>
+      </ol>
+      <h4>Strategies, and when each earns its cost</h4>
+      <ul>
+        <li><strong>Rolling</strong> — instance by instance. Cheap. Two versions run at once, so your API and database must tolerate that.</li>
+        <li><strong>Blue/green</strong> — two full environments, swap traffic. Instant rollback, double the infrastructure.</li>
+        <li><strong>Canary</strong> — a small traffic percentage first, watch error rate, then proceed. Best risk control, needs good telemetry to be meaningful.</li>
+      </ul>
+      <div class="flag">
+        <span class="lbl">The question underneath</span>
+        <p>“How do you handle database migrations in a zero-downtime deploy?” Expand-contract: add the new column, deploy code that writes both and reads the new one, backfill, then drop the old column in a later release. Never a breaking schema change in the same deployment as the code that needs it — because for the duration of a rolling deploy, both versions are live against one database.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/devops/deliver/what-is-continuous-delivery" target="_blank" rel="noopener">What is continuous delivery — Microsoft Learn</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>How do you deploy and configure a .NET app on IIS?</summary>
+    <div class="body">
+      <p>Still asked often, and relevant if you run on Windows hosts.</p>
+      <ul>
+        <li>ASP.NET Core runs in its own process (Kestrel); IIS acts as reverse proxy via the <strong>ASP.NET Core Module</strong>, configured by <code>web.config</code>.</li>
+        <li><strong>In-process</strong> hosting runs the app inside the IIS worker and is faster; <strong>out-of-process</strong> proxies to Kestrel on a local port.</li>
+        <li>Application pool identity needs read access to the content folder — a routine cause of startup failures on a fresh host.</li>
+        <li>Sub-applications need their own pool and must be excluded from any parent URL rewrite rule, or SPA routing swallows their requests.</li>
+        <li>Environment is set via <code>ASPNETCORE_ENVIRONMENT</code>, as an environment variable or in <code>web.config</code>.</li>
+      </ul>
+      <div class="flag">
+        <span class="lbl">The diagnostic worth naming</span>
+        <p>A 500.19 with error code <code>0x8007000d</code> and an empty config source almost always means a required IIS module is not installed — URL Rewrite being the usual one — so the config section has no schema and the whole file is unreadable. Naming a specific failure and its cause is far more convincing than describing deployment in general terms.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/host-and-deploy/iis/" target="_blank" rel="noopener">Host ASP.NET Core on Windows with IIS</a>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ============ AGILE ============ -->
+<section id="agile">
+  <div class="sec-head"><h2>Agile</h2><span class="count">1 question</span></div>
+  <p class="sec-note">Reported alongside incident management and deployments. Usually a short, factual exchange — do not over-invest, but do not fumble it either.</p>
+
+  <details class="qa">
+    <summary>How does your team run Agile?</summary>
+    <div class="body">
+      <p>Describe what you actually do. Interviewers are checking you can work inside a process, and the honest answer beats the textbook one.</p>
+      <h4>The ceremonies, and what each is for</h4>
+      <ul>
+        <li><strong>Sprint planning</strong> — commit to a scope the team believes in.</li>
+        <li><strong>Daily standup</strong> — surface blockers, not status theatre.</li>
+        <li><strong>Backlog refinement</strong> — size and clarify before planning, so planning is a decision rather than a discovery session.</li>
+        <li><strong>Sprint review</strong> — demo working software to stakeholders.</li>
+        <li><strong>Retrospective</strong> — change one thing about how the team works.</li>
+      </ul>
+      <h4>Terms to use correctly</h4>
+      <p>Story points measure relative complexity, not hours. Velocity is a planning input for one team, never a cross-team comparison. Definition of Done is the shared bar that stops “done” meaning “on my machine”.</p>
+      <div class="key">
+        <span class="lbl">What a senior adds</span>
+        <p>Say how you handle the parts that go wrong: scope arriving mid-sprint, estimates that were wrong, carrying technical debt as visible backlog items rather than invisible slowdown. And if your team runs something closer to Kanban or a hybrid, say that — claiming textbook Scrum you do not practise collapses under one follow-up.</p>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ============ GENAI ============ -->
+<section id="genai">
+  <div class="sec-head"><h2>Generative AI &amp; semantic search</h2><span class="count">4 questions</span></div>
+  <p class="sec-note">Reported in detail: generative AI project experience, explain semantic search, how embeddings and tokens were created, how similarity scores are computed, plus understanding of RAG, LLMs and agent creation.</p>
+
+  <details class="qa">
+    <summary>Explain semantic search — how is it different from keyword search?</summary>
+    <div class="body">
+      <p>Keyword search matches characters. Semantic search matches meaning.</p>
+      <p>Lexical search (BM25, SQL <code>LIKE</code>, full-text indexes) scores documents by term overlap. A query for “lift installation” will not match a document saying “elevator fitting”, because no term is shared. Semantic search maps both into a vector space where closeness means similar meaning, so the match happens anyway.</p>
+      <h4>The pipeline, end to end</h4>
+      <ol>
+        <li><strong>Chunk</strong> the source into units small enough to be about one thing.</li>
+        <li><strong>Embed</strong> each chunk into a fixed-length vector with an embedding model.</li>
+        <li><strong>Index</strong> the vectors — a vector database, or an approximate nearest-neighbour index like HNSW or IVF.</li>
+        <li><strong>Embed the query</strong> with the <em>same</em> model.</li>
+        <li><strong>Search</strong> for nearest neighbours by cosine similarity.</li>
+        <li><strong>Filter and rank</strong> — apply metadata constraints, optionally re-rank the top results with a cross-encoder.</li>
+      </ol>
+      <div class="key">
+        <span class="lbl">The part worth volunteering: narrowing before scoring</span>
+        <p>Comparing every query against every candidate is the naive design. If your data has a natural partition key, scope the comparison to the matching partition first and the candidate set collapses — each record is compared only within its own group rather than against the whole set. Metadata filtering and hierarchical indexing are the general forms of this. It is also the honest answer to “how does this scale”, which is the follow-up.</p>
+      </div>
+      <div class="flag">
+        <span class="lbl">Hybrid search — the answer that shows production experience</span>
+        <p>Pure semantic search is bad at exact identifiers — part numbers, error codes, names. Production systems run lexical and vector search together and fuse the rankings. If asked what you would improve, this is the strongest thing to name.</p>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>How did you create embeddings, and what are tokens?</summary>
+    <div class="body">
+      <h4>Tokens</h4>
+      <p>Models do not read characters, they read tokens — sub-word units produced by a tokeniser such as byte-pair encoding. “Unbelievable” might become <code>un</code> + <code>believ</code> + <code>able</code>. This matters practically for three reasons: context limits are counted in tokens not characters, billing is per token, and non-English text and code typically consume more tokens per character.</p>
+      <h4>Embeddings</h4>
+      <p>An embedding is a fixed-length vector of floats — commonly several hundred to a few thousand dimensions — produced by a model trained so that semantically similar inputs land close together. The model is the <em>why</em>; the vector is just the output.</p>
+      <h4>What to say about how you built them</h4>
+      <ul>
+        <li><strong>Chunking strategy</strong> — size and overlap, and whether you split on structure rather than raw character count. This is the decision that most affects quality, so lead with it.</li>
+        <li><strong>What text went in</strong> — for structured records, the concatenation of the fields that carry meaning, not the raw row.</li>
+        <li><strong>Batching</strong> — embeddings are generated in batches against a rate-limited API, with retry and backoff.</li>
+        <li><strong>Storage</strong> — where the vectors live and alongside which metadata, because the metadata is what you filter on.</li>
+        <li><strong>Re-embedding</strong> — when source data changes, and the fact that changing the embedding model invalidates the entire index. Vectors from two different models are not comparable.</li>
+      </ul>
+      <div class="flag">
+        <span class="lbl">Dimension mismatch</span>
+        <p>A common interview probe: “What happens if you change embedding models?” Everything must be re-embedded. Vectors from different models occupy different spaces, and cosine similarity between them is meaningless noise — not merely less accurate.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://platform.openai.com/docs/guides/embeddings" target="_blank" rel="noopener">Embeddings guide — OpenAI platform docs</a>
+        <a href="https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/understand-embeddings" target="_blank" rel="noopener">Understand embeddings — Azure OpenAI</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>How do you compute the similarity score?</summary>
+    <div class="body">
+      <p><strong>Cosine similarity</strong> — the cosine of the angle between two vectors. It measures direction, ignoring magnitude, which is what you want when document length should not affect relevance.</p>
+<pre><code>cos(A,B) = (A · B) / (‖A‖ × ‖B‖)
+
+A · B  = Σ aᵢbᵢ            (dot product)
+‖A‖    = √(Σ aᵢ²)          (Euclidean norm)</code></pre>
+      <p>Range is −1 to 1. For typical text embeddings, values cluster well above zero, so a raw score of 0.7 is not “70% similar” in any absolute sense — thresholds must be calibrated against your own data.</p>
+      <div class="sim">
+        <div class="sim-head">Cosine similarity calculator</div>
+        <div class="sim-body">
+          <div class="ctl">
+            <label for="vecA">A</label>
+            <input type="text" id="vecA" value="0.9, 0.1, 0.4" style="width:10rem">
+            <label for="vecB">B</label>
+            <input type="text" id="vecB" value="0.8, 0.2, 0.5" style="width:10rem">
+          </div>
+          <div class="out" id="cosOut"></div>
+        </div>
+      </div>
+      <h4>The alternatives, and when they matter</h4>
+      <ul>
+        <li><strong>Dot product</strong> — cheaper, and <em>identical in ranking</em> to cosine if your vectors are already normalised to unit length. Many models return normalised vectors, so this is the common production choice.</li>
+        <li><strong>Euclidean (L2) distance</strong> — magnitude matters; smaller is better rather than larger.</li>
+      </ul>
+      <div class="key">
+        <span class="lbl">Confidence banding</span>
+        <p>A raw score is not a decision. The production pattern is to band it: auto-accept above a high threshold, queue for human review in the middle, reject below. That way the uncertain cases surface instead of being silently guessed. If you have built this, say so — it is a maturity signal that distinguishes a demo from a system.</p>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Explain RAG, and what an agent is</summary>
+    <div class="body">
+      <h4>RAG — retrieval-augmented generation</h4>
+      <p>Retrieve relevant context from your own data, put it in the prompt, and have the model answer from it. It exists to solve three problems: the model does not know your private data, its training has a cutoff, and it will invent an answer rather than admit ignorance.</p>
+      <ol>
+        <li><strong>Ingest</strong> — chunk, embed, index.</li>
+        <li><strong>Retrieve</strong> — embed the question, fetch top-k chunks, filter by metadata the user is allowed to see.</li>
+        <li><strong>Augment</strong> — build a prompt containing those chunks and an instruction to answer only from them.</li>
+        <li><strong>Generate</strong> — with citations back to the source chunks.</li>
+      </ol>
+      <p>The failure modes to name, because they are what the follow-up is about: retrieval returns nothing relevant and the model answers anyway; chunks are too small and lose context, or too large and dilute it; top-k is too high and the real answer gets lost in the middle of a long context; and access control is skipped at retrieval time, so the model cheerfully summarises a document the user should not see.</p>
+      <h4>Agents</h4>
+      <p>An agent is an LLM given <strong>tools</strong> and a loop: it decides which tool to call, reads the result, and decides what to do next, until the task is done or a limit is hit. The model supplies reasoning; the tools supply real capability — a database query, an API call, a file write.</p>
+      <ul>
+        <li><strong>Tool definitions</strong> — name, description, parameter schema. The description is effectively the prompt that decides whether the tool is used correctly.</li>
+        <li><strong>The loop</strong> — call, observe, decide. It needs a hard iteration cap or it can run indefinitely.</li>
+        <li><strong>Boundaries</strong> — anything destructive should require confirmation, and tool output must be treated as untrusted data rather than instructions. Prompt injection through retrieved content is a real attack, not a hypothetical.</li>
+      </ul>
+      <div class="flag">
+        <span class="lbl">If you have not built an agent, say so</span>
+        <p>Claiming agent experience you do not have is the fastest way to lose an interview, because the follow-ups get specific immediately. “I have built semantic search and RAG; I understand the agent loop but have not shipped one” is a strong, honest answer — and the reported requirement is understanding, not production experience.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/azure/search/retrieval-augmented-generation-overview" target="_blank" rel="noopener">RAG overview — Azure AI Search</a>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ============ PROJECT ============ -->
+<section id="project">
+  <div class="sec-head"><h2>Project &amp; architecture</h2><span class="count">3 questions</span></div>
+  <p class="sec-note">Reported as “Explain your current project and your role in that”, plus the whole L2 round being architecture-focused. This is the round with the most marks available.</p>
+
+  <details class="qa">
+    <summary>Explain your current project and your role in it</summary>
+    <div class="body">
+      <p>Everything in L2 branches from this answer, so structure it deliberately and keep it to about ninety seconds before pausing for questions.</p>
+      <h4>Five beats</h4>
+      <ol>
+        <li><strong>Domain in one sentence</strong> — what the product does, in words a non-specialist understands. Skip internal names.</li>
+        <li><strong>Your scope</strong> — which part you own, and whether you lead. “I lead three developers on X” sets the altitude for every following question.</li>
+        <li><strong>Architecture</strong> — the four or five boxes and what flows between them. Be ready to draw it.</li>
+        <li><strong>One hard problem</strong> — the thing you would still be proud of. Give the constraint, the options, your choice, and the trade-off.</li>
+        <li><strong>Scale and shape</strong> — tenants, data volume, request pattern. Real numbers if you have them, honest qualitative shape if you do not.</li>
+      </ol>
+      <div class="key">
+        <span class="lbl">Pre-load three specifics</span>
+        <p>Have ready: the largest dataset you process, the trickiest concurrency or consistency problem you solved, and one decision you would now make differently. That last one is asked more often than people expect, and “nothing” is the wrong answer — it reads as either inexperience or defensiveness.</p>
+      </div>
+      <div class="flag">
+        <span class="lbl">Do not oversell</span>
+        <p>If your product serves a selected set of enterprise clients rather than millions of users, say so and pivot the scale story to where it is genuinely impressive: data volume per request, integration complexity, correctness requirements, multi-tenancy. Inflated traffic numbers collapse under one follow-up about your infrastructure.</p>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>How do you handle multi-tenancy?</summary>
+    <div class="body">
+      <p>If your project description says multi-tenant, this follows automatically.</p>
+      <h4>Isolation models, cheapest to strictest</h4>
+      <table>
+        <tr><th>Model</th><th>Isolation</th><th>Cost</th><th>Risk</th></tr>
+        <tr><td>Shared database, tenant column</td><td>Logical</td><td>Lowest</td><td>One missing filter leaks data</td></tr>
+        <tr><td>Shared database, schema per tenant</td><td>Better</td><td>Medium</td><td>Migration complexity multiplies</td></tr>
+        <tr><td>Database per tenant</td><td>Strongest</td><td>Highest</td><td>Operational overhead per tenant</td></tr>
+      </table>
+      <h4>Enforcement, if you share a database</h4>
+      <ul>
+        <li>Resolve the tenant once per request from the authenticated principal — never from a header or route parameter a caller controls.</li>
+        <li>Apply the filter <em>globally</em> — EF Core query filters — rather than relying on every developer remembering a <code>WHERE</code> clause.</li>
+        <li>Include the tenant in every cache key. A cache without it is a cross-tenant leak waiting to happen.</li>
+        <li>Put the tenant ID on every log entry.</li>
+        <li>Consider noisy-neighbour control: one tenant running a huge job should not degrade everyone else.</li>
+      </ul>
+      <div class="key">
+        <span class="lbl">The strongest single sentence</span>
+        <p>“Tenant isolation is enforced in one place, not remembered in many.” A global query filter plus a tenant resolved from the token means a forgotten filter is impossible rather than merely unlikely.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/ef/core/querying/filters" target="_blank" rel="noopener">Global query filters — EF Core</a>
+        <a href="https://learn.microsoft.com/en-us/azure/architecture/guide/multitenant/overview" target="_blank" rel="noopener">Architecting multitenant solutions — Microsoft Learn</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Monolith, modular monolith or microservices — what did you choose?</summary>
+    <div class="body">
+      <p>The trap here is enthusiasm. Advocating microservices for a small team is a negative signal, not a positive one.</p>
+      <h4>What microservices actually cost</h4>
+      <ul>
+        <li>Distributed transactions become sagas with compensating actions.</li>
+        <li>Every in-process call becomes a network call that can fail, time out, or arrive twice.</li>
+        <li>Debugging needs distributed tracing before it is possible at all.</li>
+        <li>Deployment, versioning and local development all multiply.</li>
+      </ul>
+      <p>A <strong>modular monolith</strong> — one deployable, strict module boundaries, no cross-module database access — gets most of the structural benefit without the distributed-systems tax. It is also the honest starting point, because the boundaries you would need for services become obvious only after the domain settles.</p>
+      <p>Extract a service when there is a specific reason: independent scaling, a different technology requirement, a separate team with its own release cadence, or a hard compliance boundary. “It felt cleaner” is not a reason.</p>
+      <div class="key">
+        <span class="lbl">If you run a shared platform service</span>
+        <p>A service consumed by several products is a legitimate microservice with a real reason: independent lifecycle and a contract between teams. That is a far better answer than an architecture-diagram justification, because it names the organisational force that actually drove the split.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/azure/architecture/microservices/" target="_blank" rel="noopener">Microservices architecture — Azure Architecture Center</a>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ============ HR ============ -->
+<section id="hr">
+  <div class="sec-head"><h2>HR round</h2><span class="count">2 questions</span></div>
+  <p class="sec-note">Reported as virtual, professional, and clear about role, culture and expectations. Treat it as a real round.</p>
+
+  <details class="qa">
+    <summary>The standard questions, and how to answer them</summary>
+    <div class="body">
+      <h4>Why are you looking to move?</h4>
+      <p>Forward-looking, never a complaint. Name what you want more of — scale, a different domain, deeper ownership — rather than what you are escaping. Criticising a current employer reads as a preview of how you will talk about this one.</p>
+      <h4>Walk me through your career</h4>
+      <p>Three minutes, chronological, with the <em>reason</em> for each transition. Where you grew, not just what you did.</p>
+      <h4>Tell me about a conflict or a failure</h4>
+      <p>Situation, your action, outcome, what you changed afterwards. The last part is the whole point. Pick something real with a genuine cost — a sanitised failure reads as evasion.</p>
+      <h4>Where do you see yourself in a few years?</h4>
+      <p>Honest direction, whether that is technical depth or team leadership. If you already lead developers, say which way you want to go and why.</p>
+      <h4>Notice period and availability</h4>
+      <p>Know your exact number and any buyout terms before the call.</p>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>What should you ask them?</summary>
+    <div class="body">
+      <p>Having no questions reads as indifference. Four that get real answers:</p>
+      <ul>
+        <li><strong>“What does the first ninety days look like for whoever takes this role?”</strong> — tells you whether the role is defined.</li>
+        <li><strong>“How do technical decisions get made here — who decides on architecture?”</strong> — tells you how much ownership is real.</li>
+        <li><strong>“What is the on-call and incident process?”</strong> — tells you about engineering maturity, and signals you have operated systems.</li>
+        <li><strong>“Why is this position open?”</strong> — growth or backfill; both are fine, and the answer is informative either way.</li>
+      </ul>
+      <div class="key">
+        <span class="lbl">On compensation</span>
+        <p>Know your number before the call, including the breakdown. If pushed early, it is reasonable to ask for the band for the role first. Treat it as information exchange, not confrontation.</p>
+      </div>
+    </div>
+  </details>
+</section>
+
+<footer>
+  <p>Compiled from the reported interview experiences supplied, deduplicated and grouped by topic. Every answer links to primary documentation — Microsoft Learn, IETF RFCs, or vendor docs — so you can verify rather than trust.</p>
+</footer>
+
+</main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- theme ---------- */
+  var root = document.documentElement;
+  document.getElementById("theme").addEventListener("click", function(){
+    var isDark = getComputedStyle(root).getPropertyValue("--paper").trim().toLowerCase().indexOf("#10") === 0;
+    root.setAttribute("data-theme", isDark ? "light" : "dark");
+  });
+
+  /* ---------- mobile rail ---------- */
+  var rail = document.getElementById("rail");
+  document.getElementById("menu").addEventListener("click", function(e){
+    e.stopPropagation();
+    rail.classList.toggle("open");
+  });
+  rail.addEventListener("click", function(e){
+    if (e.target.tagName === "A") rail.classList.remove("open");
+  });
+  document.addEventListener("click", function(e){
+    if (rail.classList.contains("open") && !rail.contains(e.target)) rail.classList.remove("open");
+  });
+
+  /* ---------- expand / collapse all ---------- */
+  var all = Array.prototype.slice.call(document.querySelectorAll("details.qa"));
+  var expandBtn = document.getElementById("expand");
+  expandBtn.addEventListener("click", function(){
+    var opening = expandBtn.textContent === "Open all";
+    all.forEach(function(d){ d.open = opening; });
+    expandBtn.textContent = opening ? "Close all" : "Open all";
+  });
+
+  /* ---------- filter ---------- */
+  var q = document.getElementById("q");
+  var nohits = document.getElementById("nohits");
+  var sections = Array.prototype.slice.call(document.querySelectorAll("section"));
+  q.addEventListener("input", function(){
+    var term = q.value.trim().toLowerCase();
+    var hits = 0;
+    sections.forEach(function(sec){
+      var local = 0;
+      Array.prototype.slice.call(sec.querySelectorAll("details.qa")).forEach(function(d){
+        var match = term === "" || d.textContent.toLowerCase().indexOf(term) !== -1;
+        d.classList.toggle("hidden", !match);
+        if (match) { local++; hits++; }
+        if (term !== "" && match) d.open = true;
+      });
+      sec.classList.toggle("hidden", local === 0);
+    });
+    nohits.classList.toggle("hidden", hits !== 0 || term === "");
+  });
+
+  /* ---------- scroll spy ---------- */
+  var links = Array.prototype.slice.call(document.querySelectorAll("#nav a"));
+  var spy = new IntersectionObserver(function(entries){
+    entries.forEach(function(en){
+      if (!en.isIntersecting) return;
+      links.forEach(function(a){
+        a.classList.toggle("on", a.getAttribute("href") === "#" + en.target.id);
+      });
+    });
+  }, { rootMargin: "-20% 0px -70% 0px" });
+  sections.forEach(function(s){ spy.observe(s); });
+
+  /* ---------- helper ---------- */
+  function nums(str){
+    return str.split(",").map(function(s){ return parseFloat(s.trim()); })
+              .filter(function(n){ return !isNaN(n); });
+  }
+
+  /* ---------- sim: async thread occupancy ---------- */
+  var at = document.getElementById("asyncThreads"),
+      atv = document.getElementById("asyncThreadsVal"),
+      ao = document.getElementById("asyncOut");
+  function asyncSim(){
+    var threads = parseInt(at.value, 10), reqs = 100, io = 200;
+    atv.textContent = threads;
+    var blocking = Math.ceil(reqs / threads) * io;
+    ao.textContent =
+      "Blocking I/O  → each request holds a thread for " + io + " ms\n" +
+      "                " + reqs + " requests / " + threads + " threads = " +
+      Math.ceil(reqs / threads) + " waves × " + io + " ms = " + blocking + " ms\n\n" +
+      "Async I/O     → thread released during the wait\n" +
+      "                all " + reqs + " requests in flight ≈ " + io + " ms\n\n" +
+      "Speed-up      ≈ " + (blocking / io).toFixed(1) + "× — and no extra threads were created.";
+  }
+  at.addEventListener("input", asyncSim); asyncSim();
+
+  /* ---------- sim: deferred execution ---------- */
+  var defOut = document.getElementById("defOut");
+  document.getElementById("defRun").addEventListener("click", function(){
+    var log = [], reads = 0;
+    function source(){
+      return [1,2,3,4,5].map(function(n){ reads++; return n; });
+    }
+    log.push("var query = source.Where(n => n > 2);   // nothing runs yet");
+    log.push("   source reads so far: " + reads);
+    log.push("");
+    log.push("var first = query.ToList();             // enumerates now");
+    source(); 
+    log.push("   source reads so far: " + reads);
+    log.push("");
+    log.push("var second = query.ToList();            // enumerates AGAIN");
+    source();
+    log.push("   source reads so far: " + reads);
+    log.push("");
+    log.push("Two enumerations = two full passes over the source.");
+    log.push("Against a database that is two round trips for one query object.");
+    defOut.textContent = log.join("\n");
+  });
+  document.getElementById("defReset").addEventListener("click", function(){
+    defOut.textContent = "Press “Run the sequence”.";
+  });
+
+  /* ---------- sim: N+1 ---------- */
+  var n1c = document.getElementById("n1Count"),
+      n1cv = document.getElementById("n1CountVal"),
+      n1l = document.getElementById("n1Lat"),
+      n1o = document.getElementById("n1Out");
+  function n1Sim(){
+    var n = parseInt(n1c.value, 10);
+    var lat = Math.max(1, parseInt(n1l.value, 10) || 1);
+    n1cv.textContent = n;
+    var lazy = 1 + n;
+    n1o.textContent =
+      "Lazy loading   → 1 + " + n + " = " + lazy + " round trips ≈ " + (lazy * lat) + " ms\n" +
+      "Include()      → 1 round trip ≈ " + lat + " ms\n" +
+      "AsSplitQuery() → 2 round trips ≈ " + (2 * lat) + " ms, without duplicated parent columns\n\n" +
+      "Saved vs lazy  : " + ((lazy - 1) * lat) + " ms of pure latency, " + (lazy - 1) + " fewer trips.";
+  }
+  n1c.addEventListener("input", n1Sim);
+  n1l.addEventListener("input", n1Sim);
+  n1Sim();
+
+  /* ---------- sim: ranking functions ---------- */
+  var salIn = document.getElementById("salInput"),
+      nthIn = document.getElementById("nth"),
+      salOut = document.getElementById("salOut");
+  function rankSim(){
+    var vals = nums(salIn.value).sort(function(a,b){ return b - a; });
+    if (!vals.length) { salOut.textContent = "Enter some salaries."; return; }
+    var n = Math.max(1, parseInt(nthIn.value, 10) || 1);
+    var rows = [], rank = 0, dense = 0, prev = null;
+    vals.forEach(function(v, i){
+      if (v !== prev) { dense++; rank = i + 1; prev = v; }
+      rows.push({ v: v, rn: i + 1, rk: rank, dr: dense });
+    });
+    var out = "salary   ROW_NUMBER  RANK  DENSE_RANK\n";
+    rows.forEach(function(r){
+      out += String(r.v).padEnd(9) + String(r.rn).padEnd(12) + String(r.rk).padEnd(6) + r.dr + "\n";
+    });
+    var byDense = rows.filter(function(r){ return r.dr === n; });
+    var byRank  = rows.filter(function(r){ return r.rk === n; });
+    out += "\nn = " + n + "\n";
+    out += "  DENSE_RANK = " + n + " → " + (byDense.length ? byDense.map(function(r){return r.v;}).join(", ") : "no rows") + "\n";
+    out += "  RANK = " + n + "       → " + (byRank.length ? byRank.map(function(r){return r.v;}).join(", ") : "no rows (rank was skipped by a tie)");
+    salOut.textContent = out;
+  }
+  salIn.addEventListener("input", rankSim);
+  nthIn.addEventListener("input", rankSim);
+  rankSim();
+
+  /* ---------- sim: stock ---------- */
+  var sIn = document.getElementById("stockInput"),
+      sBars = document.getElementById("stockBars"),
+      sOut = document.getElementById("stockOut"),
+      sState = null, sTimer = null;
+
+  function stockReset(){
+    if (sTimer) { clearInterval(sTimer); sTimer = null; }
+    var p = nums(sIn.value);
+    sState = { p: p, i: 1, min: p.length ? p[0] : 0, minIdx: 0, best: 0, bi: -1, si: -1, done: p.length < 2 };
+    drawStock();
+    sOut.textContent = p.length < 2
+      ? "Need at least two prices."
+      : "minSoFar = " + p[0] + "   best = 0\nPress “Step” to advance one day.";
+  }
+  function drawStock(){
+    var p = sState.p, max = Math.max.apply(null, p.concat([1]));
+    sBars.innerHTML = "";
+    p.forEach(function(v, i){
+      var b = document.createElement("div");
+      b.className = "bar" + (i === sState.bi ? " buy" : (i === sState.si ? " sell" : ""));
+      b.style.height = Math.max(6, (v / max) * 100) + "%";
+      b.style.opacity = i < sState.i ? "1" : "0.35";
+      var lab = document.createElement("span");
+      lab.textContent = v;
+      b.appendChild(lab);
+      sBars.appendChild(b);
+    });
+  }
+  function stockStep(){
+    if (!sState || sState.done) return;
+    var p = sState.p, i = sState.i;
+    if (i >= p.length) {
+      sState.done = true;
+      if (sTimer) { clearInterval(sTimer); sTimer = null; }
+      sOut.textContent = "Finished.\nMax profit = " + sState.best +
+        (sState.bi >= 0 ? "   buy day " + sState.bi + " at " + p[sState.bi] + ", sell day " + sState.si + " at " + p[sState.si] : "   no profitable trade");
+      drawStock();
+      return;
+    }
+    var profit = p[i] - sState.min;
+    var improved = profit > sState.best;
+    if (improved) { sState.best = profit; sState.bi = sState.minIdx; sState.si = i; }
+    var lines = [
+      "day " + i + "   price = " + p[i],
+      "  profit if sold today = " + p[i] + " - " + sState.min + " = " + profit,
+      "  best = " + sState.best + (improved ? "   ← improved" : "")
+    ];
+    if (p[i] < sState.min) { sState.min = p[i]; sState.minIdx = i; lines.push("  minSoFar updated to " + p[i]); }
+    sState.i++;
+    sOut.textContent = lines.join("\n");
+    drawStock();
+  }
+  document.getElementById("stockStep").addEventListener("click", stockStep);
+  document.getElementById("stockReset").addEventListener("click", stockReset);
+  document.getElementById("stockAuto").addEventListener("click", function(){
+    if (sTimer) { clearInterval(sTimer); sTimer = null; return; }
+    stockReset();
+    sTimer = setInterval(stockStep, 650);
+  });
+  sIn.addEventListener("change", stockReset);
+  stockReset();
+
+  /* ---------- sim: fibonacci ---------- */
+  var fN = document.getElementById("fibN"),
+      fNv = document.getElementById("fibNVal"),
+      fO = document.getElementById("fibOut");
+  function fibSim(){
+    var n = parseInt(fN.value, 10);
+    fNv.textContent = n;
+    var a = 0, b = 1, seq = [];
+    for (var i = 0; i < Math.min(n + 1, 16); i++) { seq.push(a); var t = a + b; a = b; b = t; }
+    var calls = [1, 1];
+    for (var k = 2; k <= n; k++) calls[k] = calls[k-1] + calls[k-2] + 1;
+    fO.textContent =
+      "series : " + seq.join(", ") + (n + 1 > 16 ? ", …" : "") + "\n\n" +
+      "iterative  : " + n + " loop iterations\n" +
+      "naive rec. : " + calls[n].toLocaleString() + " function calls\n\n" +
+      "ratio      : " + (calls[n] / Math.max(n,1)).toFixed(1) + "× more work for the same answer.";
+  }
+  fN.addEventListener("input", fibSim); fibSim();
+
+  /* ---------- sim: cosine ---------- */
+  var vA = document.getElementById("vecA"),
+      vB = document.getElementById("vecB"),
+      cO = document.getElementById("cosOut");
+  function cosSim(){
+    var a = nums(vA.value), b = nums(vB.value);
+    if (!a.length || a.length !== b.length) {
+      cO.textContent = "Both vectors need the same number of components.";
+      return;
+    }
+    var dot = 0, na = 0, nb = 0;
+    for (var i = 0; i < a.length; i++) { dot += a[i]*b[i]; na += a[i]*a[i]; nb += b[i]*b[i]; }
+    na = Math.sqrt(na); nb = Math.sqrt(nb);
+    if (na === 0 || nb === 0) { cO.textContent = "A zero vector has no direction — cosine is undefined."; return; }
+    var cos = dot / (na * nb);
+    var ang = Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
+    cO.textContent =
+      "A · B        = " + dot.toFixed(4) + "\n" +
+      "‖A‖          = " + na.toFixed(4) + "\n" +
+      "‖B‖          = " + nb.toFixed(4) + "\n" +
+      "cosine       = " + cos.toFixed(4) + "\n" +
+      "angle        = " + ang.toFixed(1) + "°\n\n" +
+      "Dot product alone would give " + dot.toFixed(4) + " — identical ranking only if both\nvectors are already normalised to unit length.";
+  }
+  vA.addEventListener("input", cosSim);
+  vB.addEventListener("input", cosSim);
+  cosSim();
+})();
+</script>
+</body>
+</html>
