@@ -867,87 +867,392 @@ public sealed class CloudDocumentStore : IDocumentStore
   <details class="qa">
     <summary>Walk through SOLID with a real violation and fix for each</summary>
     <div class="body">
-      <p><strong>SOLID</strong> is an acronym for five design principles. Give each one a violation you can show, not a definition.</p>
+      <p><strong>SOLID</strong> is five design principles compiled by Robert C. Martin in the 1990s. Each one is easiest to understand as a story: here is code that works, here is a new requirement, watch the design fail, now fix it.</p>
+      <ul>
+        <li><strong>S</strong> — Single Responsibility Principle (SRP)</li>
+        <li><strong>O</strong> — Open/Closed Principle (OCP)</li>
+        <li><strong>L</strong> — Liskov Substitution Principle (LSP)</li>
+        <li><strong>I</strong> — Interface Segregation Principle (ISP)</li>
+        <li><strong>D</strong> — Dependency Inversion Principle (DIP)</li>
+      </ul>
 
       <h4>S — Single Responsibility Principle</h4>
-      <p>A class should have one reason to change.</p>
-<pre><code>// ✗ four reasons to change: validation rules, mapping, the vendor API, the audit format
-public class OrderController
+      <p><em>“Every software module should have only one reason to change.”</em></p>
+      <p>Here is a user registration service. It compiles, it works, it ships.</p>
+<pre><code>public class UserService
 {
-    public IActionResult Create(OrderDto dto)
+    public void Register(string email, string password)
     {
-        if (dto.Qty &lt;= 0) return BadRequest();                 // validation
-        var order = new Order { Qty = dto.Qty };               // mapping
-        new HttpClient().PostAsync("https://vendor/api", ...); // vendor call
-        File.AppendAllText("audit.log", $"created {order.Id}");// auditing
-        return Ok();
+        if (!ValidateEmail(email))
+            throw new ValidationException("Email is not valid");
+
+        var user = new User(email, password);
+        SendEmail(new MailMessage("noreply@mysite.com", email) { Subject = "Welcome" });
     }
+
+    public bool ValidateEmail(string email) =&gt; email.Contains("@");
+
+    public void SendEmail(MailMessage message) =&gt; _smtpClient.Send(message);
+}</code></pre>
+      <p><strong>Count the reasons this class would have to change:</strong></p>
+      <ol>
+        <li>The registration rules change (add a password policy).</li>
+        <li>The email validation rules change (reject disposable domains).</li>
+        <li>The email delivery mechanism changes (SMTP → SendGrid).</li>
+      </ol>
+      <p>Three reasons, so three responsibilities. Email handling has nothing to do with user registration — it has just been parked here because it was convenient. The practical cost: you cannot test registration without an SMTP server, and a change to email delivery forces a retest of registration.</p>
+      <p><strong>Refactor — move email concerns to a class that owns them:</strong></p>
+<pre><code>public class EmailService
+{
+    private readonly SmtpClient _smtpClient;
+    public EmailService(SmtpClient smtpClient) =&gt; _smtpClient = smtpClient;
+
+    public bool ValidateEmail(string email) =&gt; email.Contains("@");
+    public void SendEmail(MailMessage message) =&gt; _smtpClient.Send(message);
 }
 
-// ✓ each collaborator changes for its own reason
-public class OrderController(IValidator&lt;OrderDto&gt; validator,
-                             IOrderMapper mapper,
-                             IVendorClient vendor,
-                             IAuditSink audit) { /* orchestrate only */ }</code></pre>
+public class UserService
+{
+    private readonly EmailService _emailService;
+    private readonly DbContext _dbContext;
+
+    public UserService(EmailService emailService, DbContext dbContext)
+    {
+        _emailService = emailService;
+        _dbContext = dbContext;
+    }
+
+    public void Register(string email, string password)
+    {
+        if (!_emailService.ValidateEmail(email))
+            throw new ValidationException("Email is not valid");
+
+        var user = new User(email, password);
+        _dbContext.Save(user);
+        _emailService.SendEmail(new MailMessage("noreply@mysite.com", email) { Subject = "Welcome" });
+    }
+}</code></pre>
+      <p>SRP does <em>not</em> mean one method per class. A class can have many members as long as they all serve one purpose. The test: describe what the class does in one sentence. If you need “and” or “or”, it has more than one responsibility.</p>
 
       <h4>O — Open/Closed Principle</h4>
-      <p>Open to extension, closed to modification. The smell is a <code>switch</code> you edit every time a new case appears.</p>
-<pre><code>// ✗ every new vendor means editing this method — and retesting all of it
-public decimal GetPrice(string vendor, Item item) =&gt; vendor switch
+      <p><em>“A software module should be open for extension and closed for modification.”</em></p>
+      <p>We need to total the area of a collection of rectangles. Having just learned SRP, we keep the calculation out of the shape:</p>
+<pre><code>public class Rectangle
 {
-    "acme"  =&gt; item.Base * 1.1m,
-    "globex"=&gt; item.Base * 1.2m,
-    _       =&gt; throw new NotSupportedException()
-};
+    public double Height { get; set; }
+    public double Width  { get; set; }
+}
 
-// ✓ a new vendor is a new class and one registration line. Nothing existing is touched.
-public interface IPricingStrategy { decimal GetPrice(Item item); }
+public class AreaCalculator
+{
+    public double TotalArea(Rectangle[] shapes)
+    {
+        double area = 0;
+        foreach (var r in shapes)
+            area += r.Height * r.Width;
+        return area;
+    }
+}</code></pre>
+      <p>Clean. Then the requirement arrives: <strong>also handle circles.</strong> The obvious move is to accept <code>object[]</code> and branch on type:</p>
+<pre><code>public class Circle
+{
+    public double Radius { get; set; }
+}
 
-builder.Services.AddKeyedSingleton&lt;IPricingStrategy, AcmePricing&gt;("acme");
-builder.Services.AddKeyedSingleton&lt;IPricingStrategy, GlobexPricing&gt;("globex");</code></pre>
+public class AreaCalculator
+{
+    public double TotalArea(object[] shapes)
+    {
+        double area = 0;
+        foreach (var obj in shapes)
+        {
+            if (obj is Rectangle r)
+                area += r.Height * r.Width;
+            else if (obj is Circle c)
+                area += c.Radius * c.Radius * Math.PI;
+        }
+        return area;
+    }
+}</code></pre>
+      <p>It works. <strong>And that is the problem.</strong> Add a triangle and you edit <code>TotalArea</code> again. Add a trapezoid, edit it again. The class has been tested and released, and every new shape forces you back inside it — so it is <em>not closed for modification</em>. Every edit risks breaking the shapes that already worked.</p>
+      <p><strong>Refactor — let each shape know how to compute its own area, behind an abstraction:</strong></p>
+<pre><code>public abstract class Shape
+{
+    public abstract double Area();
+}
+
+public class Rectangle : Shape
+{
+    public double Height { get; set; }
+    public double Width  { get; set; }
+    public override double Area() =&gt; Height * Width;
+}
+
+public class Circle : Shape
+{
+    public double Radius { get; set; }
+    public override double Area() =&gt; Radius * Radius * Math.PI;
+}
+
+public class AreaCalculator
+{
+    public double TotalArea(Shape[] shapes)
+    {
+        double area = 0;
+        foreach (var shape in shapes)
+            area += shape.Area();     // polymorphism picks the right one at runtime
+        return area;
+    }
+}</code></pre>
+<pre><code>Shape[] shapes = [ new Circle { Radius = 5 }, new Rectangle { Height = 10, Width = 10 } ];
+Console.WriteLine(new AreaCalculator().TotalArea(shapes));   // 178.54
+</code></pre>
+      <p>Now adding a triangle means writing <code>Triangle : Shape</code> and nothing else. <code>AreaCalculator</code> is never reopened — <strong>open for extension, closed for modification.</strong></p>
 
       <h4>L — Liskov Substitution Principle</h4>
-      <p>A subtype must work anywhere its base type works, without the caller knowing.</p>
-<pre><code>// ✗ classic violation — the subtype removes behaviour the base promised
-public class ReadOnlyOrderList : List&lt;Order&gt;
+      <p><em>“You should be able to use any derived class in place of its parent and have it behave the same way, without modification.”</em></p>
+      <p>An app manages a set of SQL script files — load their text, save changes back:</p>
+<pre><code>public class SqlFile
 {
-    public new void Add(Order o) =&gt; throw new NotSupportedException();
+    public string FilePath { get; set; }
+    public string FileText { get; set; }
+
+    public string LoadText() { /* read from disk */ }
+    public void   SaveText() { /* write to disk */ }
 }
 
-void Process(List&lt;Order&gt; orders) =&gt; orders.Add(new Order());  // blows up at runtime</code></pre>
-      <p><strong>The tell:</strong> if a caller has to check the concrete type (<code>if (x is ReadOnlyOrderList)</code>) before using it, Liskov is broken. The fix is composition — hold the list, expose only reading.</p>
+public class SqlFileManager
+{
+    public List&lt;SqlFile&gt; SqlFiles { get; set; }
+
+    public string GetTextFromFiles()
+    {
+        var sb = new StringBuilder();
+        foreach (var file in SqlFiles)
+            sb.Append(file.LoadText());
+        return sb.ToString();
+    }
+
+    public void SaveTextIntoFiles()
+    {
+        foreach (var file in SqlFiles)
+            file.SaveText();
+    }
+}</code></pre>
+      <p>Then: <strong>some files in the folder are read-only; saving them must not blow up.</strong> The natural move is a subclass, and a guard in the manager:</p>
+<pre><code>public class ReadOnlySqlFile : SqlFile
+{
+    public new void SaveText() =&gt; throw new IOException("Read-only file");
+}
+
+public class SqlFileManager
+{
+    public void SaveTextIntoFiles()
+    {
+        foreach (var file in SqlFiles)
+        {
+            // skip read-only files to avoid the exception
+            if (file is not ReadOnlySqlFile)
+                file.SaveText();
+        }
+    }
+}</code></pre>
+      <p><strong>That <code>if</code> is the violation.</strong> <code>ReadOnlySqlFile</code> cannot stand in for <code>SqlFile</code> without the <em>caller</em> changing. The subclass took away a capability the base class promised. Add a third file type with its own restriction and the manager grows another type check.</p>
+      <p><strong>The tell:</strong> if a caller has to ask “what concrete type is this?” before using an object, LSP is broken.</p>
+      <p><strong>Refactor — split the capabilities, so a type only claims what it can actually do:</strong></p>
+<pre><code>public interface IReadableSqlFile
+{
+    string LoadText();
+}
+
+public interface IWritableSqlFile
+{
+    void SaveText();
+}
+
+// read-only files claim only the reading capability
+public class ReadOnlySqlFile : IReadableSqlFile
+{
+    public string FilePath { get; set; }
+    public string LoadText() { /* read from disk */ }
+}
+
+// normal files claim both
+public class SqlFile : IReadableSqlFile, IWritableSqlFile
+{
+    public string FilePath { get; set; }
+    public string FileText { get; set; }
+    public string LoadText() { /* read */ }
+    public void   SaveText() { /* write */ }
+}
+
+public class SqlFileManager
+{
+    public string GetTextFromFiles(List&lt;IReadableSqlFile&gt; files)
+    {
+        var sb = new StringBuilder();
+        foreach (var file in files)
+            sb.Append(file.LoadText());
+        return sb.ToString();
+    }
+
+    public void SaveTextIntoFiles(List&lt;IWritableSqlFile&gt; files)
+    {
+        foreach (var file in files)
+            file.SaveText();          // no type checks — every item CAN save
+    }
+}</code></pre>
+      <p>The compiler now prevents the mistake: a read-only file cannot be passed to <code>SaveTextIntoFiles</code> at all. Note the fix came from identifying the right abstraction — which is ISP doing the work, and is why these two principles are so often discussed together.</p>
 
       <h4>I — Interface Segregation Principle</h4>
-      <p>No client should be forced to depend on methods it does not use.</p>
-<pre><code>// ✗ every implementation and every test double must deal with all of it
-public interface IRepository&lt;T&gt;
+      <p><em>“Clients should not be forced to implement interfaces they don't use. Many small interfaces beat one fat interface.”</em></p>
+      <p>A task-management system for an IT firm. A team lead splits work into subtasks, assigns them, and can also work on tasks:</p>
+<pre><code>public interface ILead
 {
-    T GetById(int id);  IEnumerable&lt;T&gt; GetAll();  void Add(T e);
-    void Update(T e);   void Delete(int id);      void BulkImport(Stream s);
+    void CreateSubTask();
+    void AssignTask();
+    void WorkOnTask();
 }
 
-// ✓ narrow, intention-revealing
-public interface IOrderReader { Task&lt;Order?&gt; FindAsync(int id); }
-public interface IOrderWriter { Task SaveAsync(Order order); }</code></pre>
+public class TeamLead : ILead
+{
+    public void CreateSubTask() { /* split a task */ }
+    public void AssignTask()    { /* give it to a programmer */ }
+    public void WorkOnTask()    { /* do it personally */ }
+}</code></pre>
+      <p>Fine — until a <strong>Manager</strong> role appears. A manager assigns work to team leads but never works on tasks themselves:</p>
+<pre><code>public class Manager : ILead
+{
+    public void CreateSubTask() { /* split a task */ }
+    public void AssignTask()    { /* give it to a team lead */ }
+
+    public void WorkOnTask()
+    {
+        throw new NotSupportedException("A manager doesn't work on tasks");
+    }
+}</code></pre>
+      <p><strong>That <code>throw</code> is the smell.</strong> The interface forced <code>Manager</code> to implement a method that has no meaning for it. The method exists, the compiler is happy, and the object lies about what it can do — which is also an LSP violation, since <code>Manager</code> cannot safely substitute for <code>ILead</code>.</p>
+      <p><strong>Refactor — split the fat interface along the real responsibilities:</strong></p>
+<pre><code>public interface IProgrammer
+{
+    void WorkOnTask();
+}
+
+public interface ILead
+{
+    void CreateSubTask();
+    void AssignTask();
+}</code></pre>
+      <p>Now each role implements exactly what it does, and a role that does both implements both:</p>
+<pre><code>public class Programmer : IProgrammer
+{
+    public void WorkOnTask() { /* do the work */ }
+}
+
+public class Manager : ILead
+{
+    public void CreateSubTask() { }
+    public void AssignTask()    { }
+    // no WorkOnTask — it was never meaningful here
+}
+
+public class TeamLead : IProgrammer, ILead
+{
+    public void CreateSubTask() { }
+    public void AssignTask()    { }
+    public void WorkOnTask()    { }
+}</code></pre>
+      <p>The guideline to state: <strong>an interface should be shaped by what the client needs, not by what some class happens to implement.</strong> The larger the interface, the more likely it contains methods not every implementer can honour.</p>
 
       <h4>D — Dependency Inversion Principle</h4>
-      <p>High-level modules depend on abstractions, not concrete types.</p>
-<pre><code>// ✗ unswappable, untestable — the dependency is created inside
-public class ReportService
+      <p><em>“High-level modules should not depend on low-level modules. Both should depend on abstractions.”</em></p>
+      <p>An error-logging module writes exception stack traces to a file:</p>
+<pre><code>public class FileLogger
 {
-    private readonly SqlConnection _conn = new("Server=prod;...");
+    public void LogMessage(string message) { /* write to a file */ }
 }
 
-// ✓ injected abstraction — swap it in tests, swap it in production
-public class ReportService(IReportRepository repo) { }</code></pre>
-      <p>This is the principle that makes the built-in ASP.NET Core container useful rather than ceremonial.</p>
+public class ExceptionLogger
+{
+    public void LogIntoFile(Exception ex)
+    {
+        var logger = new FileLogger();                  // ← creates its own dependency
+        logger.LogMessage(GetReadableMessage(ex));
+    }
+
+    private string GetReadableMessage(Exception ex) { /* format stack trace */ }
+}
+
+public class DataExporter
+{
+    public void ExportDataFromFile()
+    {
+        try { /* export */ }
+        catch (Exception ex) { new ExceptionLogger().LogIntoFile(ex); }
+    }
+}</code></pre>
+      <p>Then the client asks for IO exceptions to go to a <strong>database</strong> instead. So we add a logger and a method:</p>
+<pre><code>public class DbLogger
+{
+    public void LogMessage(string message) { /* write to the database */ }
+}
+
+public class ExceptionLogger
+{
+    public void LogIntoFile(Exception ex)     { new FileLogger().LogMessage(GetReadableMessage(ex)); }
+    public void LogIntoDataBase(Exception ex) { new DbLogger().LogMessage(GetReadableMessage(ex)); }
+    // ... and LogIntoEventViewer, LogIntoQueue, LogIntoSplunk ...
+}</code></pre>
+      <p><strong>Project this forward.</strong> Every new logging target adds another method to <code>ExceptionLogger</code>, and the class swells into a fat switchboard. The cause: <code>ExceptionLogger</code> — the high-level policy, “turn an exception into a readable message and log it” — directly constructs the low-level details, <code>FileLogger</code> and <code>DbLogger</code>. It knows too much about them, so it changes whenever they do.</p>
+      <p><strong>Refactor — put an abstraction between them:</strong></p>
+<pre><code>public interface ILogger
+{
+    void LogMessage(string message);
+}
+
+public class FileLogger  : ILogger { public void LogMessage(string m) { /* file */ } }
+public class DbLogger    : ILogger { public void LogMessage(string m) { /* database */ } }
+public class EventLogger : ILogger { public void LogMessage(string m) { /* event viewer */ } }</code></pre>
+      <p>And move the choice of logger <em>out</em> of <code>ExceptionLogger</code>, into whoever knows which one is wanted:</p>
+<pre><code>public class ExceptionLogger
+{
+    private readonly ILogger _logger;
+
+    public ExceptionLogger(ILogger logger) =&gt; _logger = logger;   // injected, not constructed
+
+    public void LogException(Exception ex)
+        =&gt; _logger.LogMessage(GetReadableMessage(ex));
+
+    private string GetReadableMessage(Exception ex) { /* format stack trace */ }
+}
+
+public class DataExporter
+{
+    public void ExportDataFromFile()
+    {
+        try { /* export */ }
+        catch (IOException ex)  { new ExceptionLogger(new DbLogger()).LogException(ex); }
+        catch (SqlException ex) { new ExceptionLogger(new EventLogger()).LogException(ex); }
+        catch (Exception ex)    { new ExceptionLogger(new FileLogger()).LogException(ex); }
+    }
+}</code></pre>
+      <p>Adding a fifth logging target now means writing one class that implements <code>ILogger</code> and one <code>catch</code> block. <code>ExceptionLogger</code> is never touched again.</p>
+      <div class="key">
+        <span class="lbl">Where the framework takes over</span>
+        <p>In an ASP.NET Core app you would not <code>new</code> these up in a catch block — the container injects them:</p>
+<pre><code>builder.Services.AddSingleton&lt;ILogger, FileLogger&gt;();
+public class DataExporter(ExceptionLogger logger) { }</code></pre>
+        <p>That is <strong>Dependency Injection</strong>: the pattern that implements DIP. Worth saying out loud, because interviewers often use the two terms as if they were the same thing. DIP is the principle (depend on abstractions); DI is one way of satisfying it.</p>
+      </div>
 
       <div class="key">
-        <span class="lbl">How to actually answer this</span>
-        <p>Give one-line definitions for all five, then <strong>pick one and tell a real story</strong> — where you felt the pain, what you changed, what it cost. A candidate who recites five definitions sounds like every other candidate. “Our vendor switch statement was an open/closed violation, and here is what it cost us on the third integration” sounds like an engineer.</p>
+        <span class="lbl">How to actually answer this in the room</span>
+        <p>Give the one-line statement of all five, then <strong>pick one and tell a real story</strong> — where you felt the pain, what you changed, what it cost. A candidate who recites five definitions sounds like every other candidate. “Our vendor switch statement was an open/closed violation, and here is what it cost us on the third integration” sounds like an engineer.</p>
+        <p>And have the counterpoint ready: these principles add classes and indirection. Applied without judgement they produce an unreadable maze of one-method interfaces. Coupling is not evil — zero coupling means the software does nothing. The skill is knowing <em>where</em> the design is likely to change, and putting the seams there.</p>
       </div>
       <div class="ref"><span>Reference</span>
         <a href="https://learn.microsoft.com/en-us/dotnet/architecture/modern-web-apps-azure/architectural-principles" target="_blank" rel="noopener">Architectural principles — .NET architecture guide</a>
+        <a href="https://learn.microsoft.com/en-us/dotnet/core/extensions/dependency-injection" target="_blank" rel="noopener">Dependency injection in .NET</a>
       </div>
     </div>
   </details>
