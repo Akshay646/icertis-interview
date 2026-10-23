@@ -226,7 +226,7 @@ footer{border-top:1px solid var(--rule);margin-top:4rem;padding:2rem 0;color:var
     <a href="#csharp">C# &amp; .NET fundamentals</a>
     <a href="#oop">OOP &amp; SOLID</a>
     <a href="#patterns">Design patterns</a>
-    <a href="#async">Async &amp; concurrency</a>
+    <a href="#async">Async, concurrency &amp; parallelism</a>
     <div class="grp">Data</div>
     <a href="#linq">LINQ</a>
     <a href="#ef">Entity Framework</a>
@@ -1607,7 +1607,7 @@ public interface IOrderQueries
 
 <!-- ============ ASYNC ============ -->
 <section id="async">
-  <div class="sec-head"><h2>Async &amp; concurrency</h2><span class="count">3 questions</span></div>
+  <div class="sec-head"><h2>Async, concurrency &amp; parallelism</h2><span class="count">5 questions</span></div>
   <p class="sec-note">Reported directly as “Async”. This is reliably where candidates who only copied the surrounding code get found out.</p>
 
   <details class="qa">
@@ -1696,6 +1696,83 @@ var cached = await _cache.GetAsync(key);   // cache hit → completes synchronou
       <div class="ref"><span>Reference</span>
         <a href="https://learn.microsoft.com/en-us/dotnet/csharp/asynchronous-programming/" target="_blank" rel="noopener">Asynchronous programming with async and await — Microsoft Learn</a>
         <a href="https://learn.microsoft.com/en-us/dotnet/csharp/asynchronous-programming/async-scenarios" target="_blank" rel="noopener">Async in depth</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Concurrency vs parallelism vs multithreading vs async/await</summary>
+    <div class="body">
+      <p>Four terms people use interchangeably. Interviewers ask precisely because they are <em>not</em> the same thing.</p>
+
+      <h4>Concurrency — multiple operations making progress over overlapping periods</h4>
+      <p>Not necessarily at the same instant. Your API receives 100 requests: some are waiting on the database, others are processing. The server makes progress on all of them because nothing sits blocked.</p>
+      <p>Concrete case — an endpoint needs project details and user permissions from two independent services, 300 ms each:</p>
+<pre><code>// SEQUENTIAL — the second call starts only after the first finishes
+var project     = await projectService.GetProjectAsync(projectId);      // 300 ms
+var permissions = await permissionService.GetPermissionsAsync(userId);  // 300 ms
+// total ≈ 600 ms</code></pre>
+<pre><code>// CONCURRENT — both are in flight at once
+var projectTask     = projectService.GetProjectAsync(projectId);        // started
+var permissionsTask = permissionService.GetPermissionsAsync(userId);    // started
+
+await Task.WhenAll(projectTask, permissionsTask);
+
+var project     = await projectTask;
+var permissions = await permissionsTask;
+// total ≈ 300 ms — bounded by the slower of the two</code></pre>
+      <p><strong>The condition that makes this legal:</strong> the two calls must be independent. If the second needs the first one's result, there is nothing to overlap.</p>
+
+      <h4>Parallelism — multiple operations executing at the same instant, on multiple cores</h4>
+      <p>This is for CPU-bound work that splits into independent pieces:</p>
+<pre><code>Parallel.ForEach(elements, element =&gt;
+{
+    ProcessElement(element);     // expensive calculation per element
+});</code></pre>
+      <p><strong>The caveat to state unprompted:</strong> this is only safe if <code>ProcessElement</code> is safe to run concurrently. If it appends to a shared <code>List&lt;T&gt;</code> or writes the same database rows, you have introduced race conditions and possibly overloaded a downstream dependency.</p>
+      <p>And it is not a free win. Before reaching for it, weigh CPU headroom, workload size, thread-pool pressure, and whether parallel execution actually measures faster. <strong>You would not use <code>Parallel.ForEach</code> to make ordinary database calls asynchronous</strong> — that is the wrong tool for I/O.</p>
+
+      <h4>Multithreading — using multiple threads within a process</h4>
+<pre><code>var thread = new Thread(() =&gt;
+{
+    Console.WriteLine("Executing on a separate thread");
+});
+
+thread.Start();
+thread.Join();</code></pre>
+      <p>Explicit thread creation. In ordinary ASP.NET Core business logic you almost never do this — the framework already manages request processing, and asynchronous I/O handles the waiting without a dedicated thread per operation.</p>
+
+      <h4>The table to have ready</h4>
+      <table>
+        <tr><th>Concept</th><th>What it actually does</th><th>Typical example</th></tr>
+        <tr><td>Concurrency</td><td>Multiple operations make progress over overlapping periods</td><td>Handling many API requests</td></tr>
+        <tr><td>Parallelism</td><td>Multiple operations execute simultaneously on multiple cores</td><td>CPU-intensive calculation across elements</td></tr>
+        <tr><td>Multithreading</td><td>Uses multiple threads to execute work</td><td>Worker threads processing tasks</td></tr>
+        <tr><td><code>async</code>/<code>await</code></td><td>Asynchronous control flow without blocking a thread while awaiting</td><td>Awaiting an HTTP or database call</td></tr>
+        <tr><td><code>Task.WhenAll</code></td><td>Asynchronously waits for several tasks to finish</td><td>Calling two independent services</td></tr>
+      </table>
+
+      <div class="flag">
+        <span class="lbl">The critical point interviewers listen for</span>
+        <p><strong><code>async</code>/<code>await</code> does not inherently create a thread, and <code>Task.WhenAll</code> does not inherently run tasks on separate threads.</strong></p>
+<pre><code>var response = await httpClient.GetAsync(url);</code></pre>
+        <p>While that request is on the network, no thread is held waiting for it. Nothing was spawned — a thread was <em>released</em>.</p>
+        <p>The corollary: for CPU-bound work, <code>async</code>/<code>await</code> alone makes nothing faster. There is no I/O to wait on, so there is no thread to release. That is what parallelism is for.</p>
+      </div>
+
+      <div class="key">
+        <span class="lbl">What they want to hear about threads</span>
+        <ul>
+          <li>More threads does not automatically mean faster.</li>
+          <li>Threads cost resources — roughly 1 MB of stack each, plus scheduling.</li>
+          <li>Excessive thread creation hurts performance rather than helping it.</li>
+          <li>Shared mutable state needs synchronisation.</li>
+          <li>Asynchronous I/O does not need a dedicated thread per operation.</li>
+        </ul>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/dotnet/standard/parallel-programming/" target="_blank" rel="noopener">Parallel programming in .NET — Microsoft Learn</a>
+        <a href="https://learn.microsoft.com/en-us/dotnet/standard/asynchronous-programming-patterns/" target="_blank" rel="noopener">Asynchronous programming patterns</a>
       </div>
     </div>
   </details>
@@ -1799,6 +1876,94 @@ var user = await userTask; var orders = await ordersTask;</code></pre>
       </div>
     </div>
   </details>
+  <details class="qa">
+    <summary>What is a race condition, and how do you prevent lost updates?</summary>
+    <div class="body">
+      <p><strong>A race condition is when the result depends on the timing or ordering of concurrent operations, and nothing coordinates them.</strong></p>
+
+      <h4>The lost update, step by step</h4>
+      <p>A project sits at status <code>Draft</code>. Two requests arrive at almost the same moment:</p>
+<pre><code>t=0ms   Request A reads the project          → status = "Draft"
+t=1ms   Request B reads the project          → status = "Draft"   (same value)
+t=8ms   Request A saves                      → status = "Approved"
+t=9ms   Request B saves                      → status = "Rejected"
+
+Final state: "Rejected"
+Request A returned 200 OK. Its change no longer exists.</code></pre>
+      <p>Nobody got an error. The approval silently vanished. This is the <strong>lost update</strong> problem, and it is the scenario interviewers use because it is so easy to ship by accident.</p>
+
+      <h4>The fix for database rows — optimistic concurrency</h4>
+      <p>SQL Server's <code>rowversion</code> is an 8-byte value the database changes automatically on every update of that row. Use it as a concurrency token:</p>
+<pre><code>public class Project
+{
+    public int Id { get; set; }
+    public string Status { get; set; } = "Draft";
+
+    [Timestamp]                                  // maps to SQL Server rowversion
+    public byte[] RowVersion { get; set; } = [];
+}</code></pre>
+      <p>EF Core then adds the token to the <code>WHERE</code> clause of every update:</p>
+<pre><code>UPDATE [Projects]
+SET    [Status] = @status
+WHERE  [Id] = @id AND [RowVersion] = @originalRowVersion;
+
+-- Request A: 1 row affected   ✓ (RowVersion still matched)
+-- Request B: 0 rows affected  ✗ (A already changed it; token no longer matches)</code></pre>
+      <p>Zero rows affected is how EF knows someone got there first, and it throws:</p>
+<pre><code>try
+{
+    await db.SaveChangesAsync(ct);
+}
+catch (DbUpdateConcurrencyException)
+{
+    // someone changed this row since we read it
+    return Conflict(new ProblemDetails
+    {
+        Title  = "The project was modified by another user.",
+        Status = StatusCodes.Status409Conflict
+    });
+}</code></pre>
+      <p>The client reloads and decides what to do. Nothing is silently lost.</p>
+      <p><strong>Precision point:</strong> <code>rowversion</code> is a concurrency token, not a timestamp. It is not a date, it has nothing to do with clock time, and SQL Server increments it on update. Calling it a timestamp — which the attribute name unhelpfully suggests — is a common slip.</p>
+
+      <h4>Optimistic vs pessimistic</h4>
+      <table>
+        <tr><th></th><th>Optimistic</th><th>Pessimistic</th></tr>
+        <tr><td>Assumes</td><td>Conflicts are rare</td><td>Conflicts are likely</td></tr>
+        <tr><td>Mechanism</td><td>Check at write time whether the data changed</td><td>Lock before reading or modifying</td></tr>
+        <tr><td>Cost</td><td>Occasional retry; no locks held</td><td>Locks held for the operation; reduced concurrency</td></tr>
+        <tr><td>Failure mode</td><td>409 Conflict, client retries</td><td>Blocking, timeouts, deadlocks</td></tr>
+      </table>
+      <table>
+        <tr><th>Scenario</th><th>Reasonable approach</th></tr>
+        <tr><td>Two users edit the same project description</td><td>Optimistic with <code>rowversion</code></td></tr>
+        <tr><td>Two users update the same configuration</td><td>Optimistic with conflict handling</td></tr>
+        <tr><td>Financial transaction needing strict coordination</td><td>Transaction with appropriate isolation or locking</td></tr>
+        <tr><td>Several API instances updating one shared record</td><td>Database-level concurrency control</td></tr>
+        <tr><td>Several threads mutating one in-memory collection</td><td><code>ConcurrentDictionary</code> or explicit synchronisation</td></tr>
+      </table>
+
+      <div class="flag">
+        <span class="lbl">The mistake that gets caught in review</span>
+<pre><code>// ✗ only coordinates threads inside THIS process
+private static readonly object _lock = new();
+
+lock (_lock)
+{
+    var project = db.Projects.Find(id);
+    project.Status = newStatus;
+    db.SaveChanges();
+}</code></pre>
+        <p>A C# <code>lock</code> is process-local. Run two IIS worker processes, or scale to two servers behind a load balancer, and each has its own lock object — so both enter the "protected" block simultaneously and you are back to the lost update, now with a false sense of safety.</p>
+        <p>Across instances you need the database (a concurrency token or a transaction) or a distributed lock. Saying this unprompted is a strong signal, because it is the difference between someone who has written concurrent code and someone who has run it on more than one box.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/ef/core/saving/concurrency" target="_blank" rel="noopener">Handling concurrency conflicts — EF Core docs</a>
+        <a href="https://learn.microsoft.com/en-us/sql/t-sql/data-types/rowversion-transact-sql" target="_blank" rel="noopener">rowversion (Transact-SQL)</a>
+      </div>
+    </div>
+  </details>
+
 </section>
 
 <!-- ============ LINQ ============ -->
