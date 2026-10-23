@@ -639,14 +639,41 @@ for (int i = 0; i &lt; 1_000_000; i++)
 
       <div class="flag">
         <span class="lbl">The trap: “string is a reference type, so is it mutable?”</span>
-        <p><strong>No.</strong> <code>string</code> is a reference type that is <em>immutable</em> — every operation returns a new string rather than modifying the original.</p>
+        <p><strong>No.</strong> <code>string</code> is a reference type that is <em>immutable</em>. Every operation returns a new string; the original is never touched.</p>
 <pre><code>string s = "hello";
-s.ToUpper();                  // result thrown away — s is still "hello"
-s = s.ToUpper();              // now s points at a NEW string "HELLO"
 
-var sb = new StringBuilder(); // the fix for building strings in a loop
-for (int i = 0; i &lt; 10000; i++) sb.Append(i);</code></pre>
-        <p>Concatenating in a loop with <code>+=</code> allocates a new string every iteration — quadratic allocation. <code>StringBuilder</code> uses one growing buffer.</p>
+s.ToUpper();          // returns "HELLO" — and the result is THROWN AWAY
+Console.WriteLine(s); // hello          ← unchanged
+
+s = s.ToUpper();      // now s REFERENCES a new string
+Console.WriteLine(s); // HELLO</code></pre>
+        <p>This is the single most common C# beginner bug, and it is still asked at senior level because the same immutability drives the <code>StringBuilder</code> question.</p>
+
+        <h4>Why appending repeatedly is expensive</h4>
+<pre><code>string text = "Hello";
+text += " World";
+text += "!";</code></pre>
+        <p>Three separate string objects are created:</p>
+<pre><code>1.  "Hello"          ← the original
+2.  "Hello World"    ← NEW object: "Hello" copied, then " World" appended
+3.  "Hello World!"   ← ANOTHER new object: all 11 chars copied again</code></pre>
+        <p><code>text</code> is only a reference being repointed. The earlier strings become eligible for garbage collection once nothing references them — but they were allocated and copied first.</p>
+        <p>In a loop the copying compounds, because each iteration re-copies everything written so far:</p>
+<pre><code>string result = "";
+for (int i = 0; i &lt; 10000; i++)
+    result += i;      // iteration 9999 copies ~38,000 characters just to add 4</code></pre>
+
+        <h4>StringBuilder keeps a mutable buffer</h4>
+<pre><code>var sb = new StringBuilder("Hello");
+
+sb.Append(" World");
+sb.Append("!");
+
+Console.WriteLine(sb.ToString());</code></pre>
+<pre><code>Hello World!</code></pre>
+        <p>Appends write into the existing buffer rather than producing a new string each time.</p>
+        <p><strong>The caveat worth stating:</strong> this is not zero allocations. When the buffer fills, <code>StringBuilder</code> allocates a bigger one and copies across. What it avoids is the <em>repeated intermediate strings</em>, which is where the real cost lives. If you know the final size, <code>new StringBuilder(capacity)</code> avoids most of the regrowth as well.</p>
+        <p><strong>When not to bother:</strong> a few concatenations are fine — the compiler turns <code>a + b + c</code> into a single <code>string.Concat</code> call, one allocation. <code>StringBuilder</code> earns its place in loops and when the count is unknown.</p>
       </div>
       <div class="ref"><span>Reference</span>
         <a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/value-types" target="_blank" rel="noopener">Value types — C# reference</a>
