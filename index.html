@@ -610,11 +610,32 @@ Console.WriteLine(c1.X);            // 99 — same object</code></pre>
       <p>The usual answer is “value types on the stack, reference types on the heap”, and it is only mostly true. A value type that is a <em>field of a class</em> lives on the heap, inside that object. A value type captured by a lambda is also hoisted to the heap. The reliable statement is about <em>copy semantics</em>, not location.</p>
 
       <h4>Boxing — where the performance question comes from</h4>
-      <p><strong>Boxing</strong> wraps a value type in a heap-allocated object so it can be used as <code>object</code>. <strong>Unboxing</strong> extracts it back, with a type check.</p>
+      <p><strong>Boxing</strong> wraps a value type inside a heap-allocated object so it can be treated as <code>object</code>. <strong>Unboxing</strong> extracts it back out.</p>
 <pre><code>int n = 42;
-object boxed = n;          // boxing:   heap allocation + copy
-int back = (int)boxed;     // unboxing: type check + copy</code></pre>
-      <p>In a loop over a million items that is a million allocations, which means garbage collection pressure. This is exactly why generic collections (<code>List&lt;int&gt;</code>) replaced the non-generic ones (<code>ArrayList</code>) — generics avoid the boxing entirely.</p>
+
+object boxed = n;        // BOXING
+//   1. allocate an object on the heap
+//   2. copy the value 42 into it
+//   3. 'boxed' now holds the address of that object
+
+int back = (int)boxed;   // UNBOXING
+//   1. check the object really contains an int (throws InvalidCastException if not)
+//   2. copy the value back out</code></pre>
+      <p>One boxing operation is trivial. The problem is doing it in a loop without noticing:</p>
+<pre><code>// non-generic collection — every element is stored as object
+var list = new ArrayList();
+for (int i = 0; i &lt; 1_000_000; i++)
+    list.Add(i);              // 1,000,000 boxing allocations
+
+int total = 0;
+foreach (int x in list)       // 1,000,000 unboxing operations
+    total += x;</code></pre>
+      <p>A million short-lived heap objects means a million objects for the garbage collector to trace and reclaim. With a generic collection the problem disappears entirely:</p>
+<pre><code>var list = new List&lt;int&gt;();   // stores int directly, no object wrapper
+for (int i = 0; i &lt; 1_000_000; i++)
+    list.Add(i);              // zero boxing</code></pre>
+      <p>This is <em>why</em> generics were added in C# 2.0 — <code>List&lt;int&gt;</code> is not just type-safer than <code>ArrayList</code>, it is structurally faster.</p>
+      <p>Boxing still happens in places people miss: <code>string.Format("{0}", someInt)</code> boxes, and so does calling a non-generic interface method on a struct.</p>
 
       <div class="flag">
         <span class="lbl">The trap: “string is a reference type, so is it mutable?”</span>
@@ -1276,21 +1297,37 @@ builder.Services.AddDbContext&lt;AppDbContext&gt;();   // scoped by default</cod
 
       <div class="flag">
         <span class="lbl">Captive dependency — the real question</span>
-        <p>Inject a <strong>scoped</strong> service into a <strong>singleton</strong> and the singleton captures it forever. Your per-request <code>DbContext</code> becomes a shared, application-lifetime object used concurrently by every request.</p>
-<pre><code>// ✗ the DbContext is now captive for the life of the app
-public class CacheWarmer(AppDbContext db) { }          // registered as Singleton
+        <p>Here is a background cache warmer, registered as a singleton because you only want one:</p>
+<pre><code>builder.Services.AddSingleton&lt;CacheWarmer&gt;();
+builder.Services.AddDbContext&lt;AppDbContext&gt;();   // scoped — one per request
 
-// ✓ create a scope per unit of work
-public class CacheWarmer(IServiceScopeFactory scopeFactory)
+public class CacheWarmer
 {
-    public async Task WarmAsync()
+    private readonly AppDbContext _db;
+    public CacheWarmer(AppDbContext db) =&gt; _db = db;   // ← the bug
+}</code></pre>
+        <p><strong>Walk through what the container does.</strong> The singleton is built once, on first use. To build it, the container needs an <code>AppDbContext</code>, so it creates one — and that instance is now held by an object that lives for the lifetime of the application.</p>
+<pre><code>request 1  → CacheWarmer created, gets DbContext #1
+request 2  → same CacheWarmer, still DbContext #1
+request 847 → same CacheWarmer, STILL DbContext #1</code></pre>
+        <p>A <code>DbContext</code> is not thread-safe and is designed for one unit of work. Now every request shares one, concurrently. What you see in production:</p>
+<pre><code>InvalidOperationException: A second operation was started on this context
+instance before a previous operation completed.</code></pre>
+        <p>…intermittently, under load, impossible to reproduce locally. Plus the change tracker grows forever, because nothing ever disposes it.</p>
+        <p><strong>The fix — create a scope per unit of work:</strong></p>
+<pre><code>public class CacheWarmer
+{
+    private readonly IServiceScopeFactory _scopeFactory;
+    public CacheWarmer(IServiceScopeFactory scopeFactory) =&gt; _scopeFactory = scopeFactory;
+
+    public async Task WarmAsync(CancellationToken ct)
     {
-        using var scope = scopeFactory.CreateScope();
+        using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService&lt;AppDbContext&gt;();
-        /* use db, disposed with the scope */
+        /* use db — disposed when the scope is disposed */
     }
 }</code></pre>
-        <p>Symptoms: intermittent <code>InvalidOperationException: A second operation started on this context</code>, stale tracked entities, impossible-to-reproduce bugs. ASP.NET Core’s scope validation catches it at startup in Development — which is why you should never disable it there.</p>
+        <p>ASP.NET Core catches this at startup in Development with scope validation — which is why you should never turn that off.</p>
       </div>
       <div class="key">
         <span class="lbl">The rule in one line</span>
@@ -1430,27 +1467,78 @@ public class Registry
         <tr><td>Template Method</td><td>Fix a workflow's steps and sequence, vary one step</td><td>The same three steps copy-pasted into every subclass</td></tr>
       </table>
 
-      <h4>Decorator, shown — because it is the one people cannot demonstrate</h4>
-      <p>Add caching to an existing service without editing it or its callers:</p>
+      <h4>Strategy, shown — swapping an algorithm at runtime</h4>
+      <p>Shipping cost depends on the courier. The branching version is the smell:</p>
+<pre><code>// ✗ every new courier edits this method
+public decimal GetCost(string courier, Parcel p) =&gt; courier switch
+{
+    "bluedart" =&gt; p.Weight * 45m,
+    "delhivery" =&gt; p.Weight * 38m + 20m,
+    _ =&gt; throw new NotSupportedException()
+};</code></pre>
+<pre><code>// ✓ each algorithm is its own class, selected at runtime
+public interface IShippingStrategy { decimal GetCost(Parcel p); }
+
+public class BlueDartShipping  : IShippingStrategy { public decimal GetCost(Parcel p) =&gt; p.Weight * 45m; }
+public class DelhiveryShipping : IShippingStrategy { public decimal GetCost(Parcel p) =&gt; p.Weight * 38m + 20m; }
+
+public class Checkout(IShippingStrategy shipping)
+{
+    public decimal Total(Parcel p) =&gt; p.Value + shipping.GetCost(p);
+}
+
+new Checkout(new BlueDartShipping()).Total(parcel);    // works
+new Checkout(new DelhiveryShipping()).Total(parcel);   // works, Checkout unchanged</code></pre>
+
+      <h4>Factory — deciding WHICH strategy to create</h4>
+      <p>Strategy does not answer "which one?". That is the factory's job:</p>
+<pre><code>public class ShippingStrategyFactory(IServiceProvider sp)
+{
+    public IShippingStrategy For(string courierKey) =&gt;
+        sp.GetRequiredKeyedService&lt;IShippingStrategy&gt;(courierKey);
+}
+
+// registration
+builder.Services.AddKeyedSingleton&lt;IShippingStrategy, BlueDartShipping&gt;("bluedart");
+builder.Services.AddKeyedSingleton&lt;IShippingStrategy, DelhiveryShipping&gt;("delhivery");
+
+// use: the courier comes from the order, resolved at runtime
+var strategy = factory.For(order.CourierKey);</code></pre>
+      <p>They almost always appear together, which is why people confuse them. <strong>The factory creates; the strategy is the thing created.</strong> Saying "the factory resolves the strategy" shows you understand both rather than treating them as synonyms.</p>
+
+      <h4>Decorator — adding behaviour without touching the original</h4>
+      <p>You need caching on a price lookup. You cannot edit <code>PriceService</code> (shared library), and you do not want every caller to change.</p>
 <pre><code>public interface IPriceService { Task&lt;decimal&gt; GetAsync(int itemId); }
 
 // the real one — untouched
-public class PriceService : IPriceService { /* hits the database */ }
+public class PriceService : IPriceService
+{
+    public async Task&lt;decimal&gt; GetAsync(int itemId) { /* hits the database */ }
+}
 
-// the decorator: same interface, wraps the real one
+// the decorator: SAME interface, wraps the real one
 public class CachedPriceService(IPriceService inner, IMemoryCache cache) : IPriceService
 {
     public async Task&lt;decimal&gt; GetAsync(int itemId) =&gt;
         await cache.GetOrCreateAsync($"price:{itemId}", async entry =&gt;
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
-            return await inner.GetAsync(itemId);
+            return await inner.GetAsync(itemId);     // delegate to the real one on a miss
         });
 }</code></pre>
-      <p>Callers still depend on <code>IPriceService</code> and know nothing changed. Stack another decorator for retry or logging and the order of wrapping is the order of execution — which is exactly how ASP.NET Core middleware works.</p>
+      <p>Registration is where the swap happens, and callers never find out:</p>
+<pre><code>builder.Services.AddScoped&lt;PriceService&gt;();
+builder.Services.AddScoped&lt;IPriceService&gt;(sp =&gt;
+    new CachedPriceService(sp.GetRequiredService&lt;PriceService&gt;(),
+                           sp.GetRequiredService&lt;IMemoryCache&gt;()));</code></pre>
+      <p>Stack another for retry or logging, and <strong>the order of wrapping is the order of execution</strong>:</p>
+<pre><code>Logging( Retry( Cached( PriceService ) ) )
 
-      <h4>Strategy vs Factory — the distinction they probe</h4>
-      <p>A <strong>Factory</strong> decides <em>which object to create</em>. A <strong>Strategy</strong> is the interchangeable algorithm itself. They usually appear together: a factory creates the strategy. Saying “the factory resolves the strategy” shows you understand both rather than treating them as synonyms.</p>
+call  →  log  →  retry  →  cache  →  database
+                                  ←  cache miss fills, returns
+</code></pre>
+      <p>That is exactly how ASP.NET Core middleware and <code>DelegatingHandler</code> on <code>HttpClient</code> work — you have used this pattern whether or not you called it Decorator.</p>
+
     </div>
   </details>
 
@@ -1508,14 +1596,49 @@ public interface IOrderQueries
         <li>When the I/O completes, the operating system signals it, the continuation is queued, and the rest of the method runs — possibly on a <em>different</em> thread.</li>
       </ol>
 
-      <h4>What the compiler actually generates</h4>
+      <h4>Trace one request</h4>
 <pre><code>public async Task&lt;Order&gt; GetOrderAsync(int id)
 {
+    Log("A");                                      // thread 7
     var order = await _db.Orders.FindAsync(id);    // suspension point
+    Log("B");                                      // maybe thread 12
     order.ViewCount++;
     return order;
 }</code></pre>
-      <p>Roslyn rewrites that into a struct implementing a state machine: a field for the current state, fields for every local that survives an <code>await</code>, and a <code>MoveNext()</code> method containing your code split into chunks between the awaits. That is why locals survive suspension — they became fields on the heap.</p>
+<pre><code>t=0ms    thread 7 enters, logs "A", calls FindAsync
+t=0ms    FindAsync starts I/O and returns an INCOMPLETE Task
+t=0ms    await sees it is incomplete → registers a continuation
+         → thread 7 RETURNS TO THE POOL and starts serving another request
+t=0-40ms no thread is involved at all. The OS is waiting on the socket.
+t=40ms   database responds, OS signals completion
+t=40ms   continuation queued → thread 12 picks it up, logs "B", finishes</code></pre>
+      <p>For 40 milliseconds this request occupied <strong>zero threads</strong>. That is the whole point — and it is why "B" can log on a different thread than "A".</p>
+
+      <h4>What the compiler actually generates</h4>
+      <p>Roslyn rewrites that method into a state machine struct. Roughly:</p>
+<pre><code>struct GetOrderAsyncStateMachine : IAsyncStateMachine
+{
+    public int _state;                  // where to resume: -1 = not started, 0 = after first await
+    public int _id;                     // the parameter, hoisted
+    public Order _order;                // the local, hoisted — this is why locals survive
+    public TaskAwaiter&lt;Order&gt; _awaiter;
+
+    public void MoveNext()
+    {
+        switch (_state)
+        {
+            case -1:  /* code before the await */   goto suspend;
+            case 0:   /* code after the await */    break;
+        }
+    }
+}</code></pre>
+      <p>Your locals became <em>fields</em>, which means they live on the heap rather than the stack. That is how they still exist when execution resumes minutes later on a different thread.</p>
+
+      <h4>The short-circuit worth knowing</h4>
+<pre><code>// if the task is ALREADY complete, there is no suspension at all
+var cached = await _cache.GetAsync(key);   // cache hit → completes synchronously
+                                           // no state machine transition, no thread release</code></pre>
+      <p>This is why <code>ValueTask&lt;T&gt;</code> exists: on a path that usually completes synchronously, allocating a full <code>Task</code> object every call is waste.</p>
 
       <h4>Why a web server cares</h4>
       <p>A thread parked on a database call is a thread not serving another request. The default thread pool is small. Block 50 threads on I/O and request 51 queues — latency climbs for everyone while the CPU sits idle.</p>
@@ -1602,16 +1725,26 @@ private async Task&lt;string&gt; GetDataAsync()
       </table>
 
       <h4>The distinction that matters: CPU-bound vs I/O-bound</h4>
-<pre><code>// ✗ WRONG — wrapping I/O in Task.Run
-// This does not make the call async. It occupies a pool thread that then blocks.
-var rows = await Task.Run(() =&gt; db.Elements.ToList());
+      <p><strong>I/O-bound</strong> work waits on something external — a database, a disk, an HTTP call. The CPU does nothing during the wait.</p>
+      <p><strong>CPU-bound</strong> work keeps a core busy — hashing, parsing geometry, image processing.</p>
+      <p>Wrapping I/O in <code>Task.Run</code> is the classic mistake, because it <em>looks</em> asynchronous:</p>
+<pre><code>var rows = await Task.Run(() =&gt; db.Elements.ToList());</code></pre>
+<pre><code>thread 7  (request thread)  → hands work to the pool, then awaits
+thread 12 (pool thread)     → calls ToList(), BLOCKS for 200ms on the database
+                              ← this thread is stuck doing nothing
 
-// ✓ RIGHT — true async I/O, no thread held during the wait
-var rows = await db.Elements.ToListAsync(ct);
+Two threads involved. One of them blocked. Nothing gained.</code></pre>
+      <p>Versus the real thing:</p>
+<pre><code>var rows = await db.Elements.ToListAsync(ct);</code></pre>
+<pre><code>thread 7 → starts the query, releases itself to the pool
+           ← ZERO threads held for the 200ms wait
+thread ? → resumes when the data arrives</code></pre>
+      <p>Under load the difference is severe. With a 100-thread pool, the <code>Task.Run</code> version supports roughly 100 concurrent requests before queuing starts. The async version is limited by the database, not by threads.</p>
 
-// ✓ RIGHT use of Task.Run — genuinely CPU-bound work off the calling thread
-var hash = await Task.Run(() =&gt; ComputeExpensiveGeometryHash(model), ct);</code></pre>
-      <p>In a desktop application <code>Task.Run</code> keeps the UI thread responsive. In a web application it is rarely useful — the request thread is a pool thread already, so moving work to another pool thread gains nothing and adds scheduling overhead.</p>
+      <h4>Where Task.Run IS correct</h4>
+<pre><code>// CPU-bound: genuinely needs a core, and you want it off the current thread
+var hash = await Task.Run(() =&gt; ComputeGeometryHash(model), ct);</code></pre>
+      <p>In a desktop app this keeps the UI thread responsive. In a web API it is rarely worth it — the request thread is already a pool thread, so you have just moved work from one pool thread to another and added scheduling overhead. The exception is when you want to avoid blocking the request thread on a long synchronous library call you cannot change.</p>
 
       <h4>Running things concurrently</h4>
 <pre><code>// sequential: 300 ms total
@@ -1658,16 +1791,18 @@ var user = await userTask; var orders = await ordersTask;</code></pre>
         <tr><td><code>Join</code>, <code>Distinct</code>, <code>Reverse</code></td><td><code>First</code>, <code>Single</code>, <code>Any</code>, <code>All</code></td></tr>
       </table>
 
-      <h4>The consequence people get caught by</h4>
-<pre><code>var query = db.Orders.Where(o =&gt; o.Total &gt; 1000);   // no SQL yet
-
-var count = query.Count();      // SQL round trip #1
-var list  = query.ToList();     // SQL round trip #2 — runs the whole query AGAIN
-var first = query.First();      // SQL round trip #3
-
-// ✓ materialise once, then work in memory
-var orders = await query.ToListAsync(ct);   // one round trip
-var count2 = orders.Count;</code></pre>
+      <h4>What “deferred” means, step by step</h4>
+<pre><code>var query = db.Orders.Where(o =&gt; o.Total &gt; 1000);</code></pre>
+      <p>At this point <strong>nothing has happened.</strong> No SQL was sent. No connection was opened. <code>query</code> is an object describing <em>what to do</em>, not the result of doing it.</p>
+      <p>The work happens the moment you enumerate it:</p>
+<pre><code>var count = query.Count();      // SQL round trip #1
+var list  = query.ToList();     // SQL round trip #2 — the WHOLE query runs again
+var first = query.First();      // SQL round trip #3</code></pre>
+      <p>Three operations on what looks like one query object, three separate trips to the database. Nothing is cached between them — the query object is a recipe, and you cooked it three times.</p>
+      <p><strong>Materialise once, then work in memory:</strong></p>
+<pre><code>var orders = await query.ToListAsync(ct);   // one round trip
+var count  = orders.Count;                  // in memory, free
+var first  = orders[0];                     // in memory, free</code></pre>
 
       <div class="sim">
         <div class="sim-head">Deferred execution — watch when the source is actually read</div>
@@ -1708,21 +1843,38 @@ var result = q.ToList();                      // filters on 500, not 100</code><
         <tr><td>Lives in</td><td><code>System.Linq.Enumerable</code></td><td><code>System.Linq.Queryable</code></td></tr>
       </table>
 
-      <h4>The same code, two very different outcomes</h4>
-<pre><code>// ✗ AsEnumerable() switches to in-memory — pulls the ENTIRE table over the wire
-var recent = db.Documents
-    .AsEnumerable()
+      <h4>Same-looking code, very different outcomes</h4>
+      <p>A <code>Documents</code> table with 2,000,000 rows. We want the 400 created since a cutoff date.</p>
+<pre><code>var recent = db.Documents
+    .AsEnumerable()                              // ← switches to in-memory LINQ
     .Where(d =&gt; d.CreatedUtc &gt; cutoff)
-    .ToList();
-// SQL: SELECT * FROM Documents          ← 2 million rows, then filtered in C#
+    .ToList();</code></pre>
+      <p>What actually runs:</p>
+<pre><code>SELECT [d].[Id], [d].[FileName], [d].[CreatedUtc], ... FROM [Documents] AS [d]
 
-// ✓ stays IQueryable — the filter is translated
-var recent = await db.Documents
-    .Where(d =&gt; d.CreatedUtc &gt; cutoff)
-    .ToListAsync(ct);
-// SQL: SELECT ... FROM Documents WHERE CreatedUtc > @cutoff   ← 400 rows</code></pre>
+→ 2,000,000 rows pulled across the network
+→ 2,000,000 Document objects allocated in your process
+→ THEN the Where runs in C#, keeping 400
+→ 1,999,600 objects discarded</code></pre>
+      <p>Remove one call and it becomes a different system:</p>
+<pre><code>var recent = await db.Documents
+    .Where(d =&gt; d.CreatedUtc &gt; cutoff)            // stays IQueryable
+    .ToListAsync(ct);</code></pre>
+<pre><code>SELECT [d].[Id], [d].[FileName], [d].[CreatedUtc], ...
+FROM [Documents] AS [d]
+WHERE [d].[CreatedUtc] &gt; @cutoff
 
-      <p>An <strong>expression tree</strong> is what makes the difference: <code>IQueryable</code> stores your lambda as a parseable structure, so EF Core can walk it and emit SQL. <code>IEnumerable</code> stores it as already-compiled code, which can only be run, not inspected.</p>
+→ 400 rows across the network, 400 objects allocated</code></pre>
+      <h4>Why the difference exists</h4>
+      <p>An <strong>expression tree</strong> is the mechanism. <code>IQueryable&lt;T&gt;</code> stores your lambda as a data structure the provider can walk and translate:</p>
+<pre><code>d =&gt; d.CreatedUtc &gt; cutoff
+
+stored as:    GreaterThan
+              ├── MemberAccess(d.CreatedUtc)
+              └── Constant(cutoff)
+
+EF Core reads that tree and emits:   WHERE [d].[CreatedUtc] &gt; @cutoff</code></pre>
+      <p><code>IEnumerable&lt;T&gt;</code> stores the same lambda as an already-compiled delegate — a block of machine code. It can only be <em>run</em>, never inspected, so nothing can turn it into SQL.</p>
 
       <div class="flag">
         <span class="lbl">Where this bites in real code</span>
@@ -1829,32 +1981,45 @@ SELECT [d].[Id] FROM [Documents] AS [d] WHERE [d].[ProjectId] = 3
   <details class="qa">
     <summary>What does AsNoTracking do, and when should you use it?</summary>
     <div class="body">
-      <p>By default EF Core keeps a <strong>snapshot</strong> of every entity it loads, so <code>SaveChanges</code> can work out what changed. That costs memory and CPU proportional to the result size — and it is pure waste on a read-only query.</p>
+      <h4>What tracking actually does</h4>
+      <p>When EF Core materialises an entity, it keeps a <strong>snapshot</strong> — a second copy of every property value — so that <code>SaveChanges</code> can compare current against original and work out what to write.</p>
+<pre><code>var project = await db.Projects.FirstAsync(ct);   // EF stores a snapshot of every column
+project.Name = "Tower B";                          // you change one property
 
-      <h4>See the difference</h4>
-<pre><code>// tracked (default) — EF stores a copy of all 50,000 rows to compare later
+await db.SaveChangesAsync(ct);
+// EF compares current vs snapshot, finds Name differs, emits:
+// UPDATE [Projects] SET [Name] = @p0 WHERE [Id] = @p1</code></pre>
+      <p>That is exactly what you want when you intend to save. It is pure waste when you do not.</p>
+
+      <h4>What it costs on a read-only query</h4>
+<pre><code>// tracked (the default)
 var a = await db.Elements.Where(e =&gt; e.LevelId == id).ToListAsync(ct);
 Console.WriteLine(db.ChangeTracker.Entries().Count());   // 50000
 
-// untracked — nothing retained
-var b = await db.Elements.AsNoTracking().Where(e =&gt; e.LevelId == id).ToListAsync(ct);
+// untracked
+var b = await db.Elements.AsNoTracking()
+                         .Where(e =&gt; e.LevelId == id)
+                         .ToListAsync(ct);
 Console.WriteLine(db.ChangeTracker.Entries().Count());   // 0</code></pre>
-      <p>For any GET endpoint, report or export, <code>AsNoTracking()</code> is free performance.</p>
+      <p>In the first case EF built 50,000 snapshots and is holding all of them for the lifetime of the context, for a GET endpoint that will never call <code>SaveChanges</code>. In the second it built none.</p>
+      <p>There is a correctness consequence too, not just performance. Tracked queries return the <em>same object instance</em> for a row already in the tracker — so a second query can hand you stale in-memory values rather than what is currently in the database. Untracked queries always give you fresh objects.</p>
 
       <h4>Projection matters as much as tracking</h4>
-<pre><code>// ✗ selects every column of a 30-column table, materialises full entities
-var rows = await db.Elements.AsNoTracking()
+      <p>An <code>Elements</code> table with 30 columns, including a large geometry blob:</p>
+<pre><code>// ✗ selects all 30 columns, builds full entities, tracks them
+var rows = await db.Elements
     .Where(e =&gt; e.LevelId == id)
     .ToListAsync(ct);
-// SELECT e.Id, e.Name, e.Category, e.Guid, e.Geometry, e.Params, ... (30 columns)
-
-// ✓ selects three columns; projection also disables tracking automatically
+// SELECT e.Id, e.Name, e.Category, e.Guid, e.Geometry, e.Parameters, ... (30 columns)
+// 50,000 rows × a geometry blob each = megabytes on the wire</code></pre>
+<pre><code>// ✓ selects 3 columns; projecting to a DTO also disables tracking automatically
 var rows = await db.Elements
     .Where(e =&gt; e.LevelId == id)
     .Select(e =&gt; new ElementDto(e.Id, e.Name, e.Category))
     .ToListAsync(ct);
-// SELECT e.Id, e.Name, e.Category FROM Elements e WHERE e.LevelId = @id</code></pre>
-      <p>On a table with a large geometry or JSON column, that is the difference between megabytes and kilobytes per request.</p>
+// SELECT e.Id, e.Name, e.Category FROM Elements e WHERE e.LevelId = @id
+// kilobytes</code></pre>
+      <p>Note the second one needs no <code>AsNoTracking()</code> — EF cannot track a <code>ElementDto</code> because it is not an entity. Projection gives you both wins at once.</p>
 
       <div class="key">
         <span class="lbl">EF performance checklist</span>
@@ -2691,15 +2856,30 @@ static bool IsAnagram(string a, string b)
 
       <div class="flag">
         <span class="lbl">What almost every string question is secretly testing</span>
-<pre><code>// ✗ O(n²) in allocations — a NEW string every iteration
-string result = "";
-for (int i = 0; i &lt; 10000; i++) result += i;      // ~50 MB allocated
+        <p><strong>Strings are immutable.</strong> You might think C# modifies the existing string each time you append. It does not.</p>
+<pre><code>string text = "Hello";
+text += " World";
+text += "!";</code></pre>
+        <p>Conceptually, three separate string objects are created:</p>
+<pre><code>1.  "Hello"          ← the original string
+2.  "Hello World"    ← a NEW string; "Hello" is copied, then " World" appended
+3.  "Hello World!"   ← ANOTHER new string; all 11 characters copied again</code></pre>
+        <p><code>text</code> is just a reference being repointed. The earlier strings become eligible for garbage collection once nothing references them — but they were still allocated and still copied.</p>
+        <p>In a loop this compounds. Each iteration copies everything written so far, so the work grows with the square of the number of appends:</p>
+<pre><code>string result = "";
+for (int i = 0; i &lt; 10000; i++)
+    result += i;          // iteration 9999 copies ~38,000 characters to add 4</code></pre>
+        <p><strong><code>StringBuilder</code> keeps a mutable buffer instead:</strong></p>
+<pre><code>var sb = new StringBuilder("Hello");
 
-// ✓ one growing buffer
-var sb = new StringBuilder();
-for (int i = 0; i &lt; 10000; i++) sb.Append(i);     // ~100 KB
-string result = sb.ToString();</code></pre>
-        <p><code>string</code> is immutable — every <code>+=</code> allocates a new object and copies everything. This is the point behind the question.</p>
+sb.Append(" World");
+sb.Append("!");
+
+Console.WriteLine(sb.ToString());</code></pre>
+<pre><code>Hello World!</code></pre>
+        <p>Appending writes into the existing buffer rather than producing a new string each time.</p>
+        <p><strong>The honest caveat:</strong> this is not zero allocations. When the buffer fills, <code>StringBuilder</code> grows it — which means allocating a larger buffer and copying across. What it avoids is the <em>repeated intermediate strings</em>, which is where the cost actually lives. If you know the final size, <code>new StringBuilder(capacity)</code> avoids most of the regrowth too.</p>
+        <p><strong>When NOT to reach for it:</strong> a handful of concatenations is fine as-is — the compiler turns <code>a + b + c</code> into a single <code>string.Concat</code> call, one allocation. <code>StringBuilder</code> earns its place in loops and when the count is unknown.</p>
       </div>
       <div class="ref"><span>Reference</span>
         <a href="https://learn.microsoft.com/en-us/dotnet/standard/base-types/stringbuilder" target="_blank" rel="noopener">StringBuilder — Microsoft Learn</a>
