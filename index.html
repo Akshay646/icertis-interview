@@ -192,6 +192,19 @@ th{background:var(--accent-soft);font-family:"Bricolage Grotesque",sans-serif;fo
 .bar.sell{background:var(--flag)}
 .bar span{position:absolute;top:-1.1rem;left:50%;transform:translateX(-50%);font-family:"JetBrains Mono",monospace;font-size:.62rem;color:var(--ink-faint)}
 
+/* ---------- video card ---------- */
+.vid-card{display:block;max-width:34rem;margin:.9rem 0;border:1px solid var(--rule);border-radius:12px;overflow:hidden;background:var(--card);text-decoration:none;transition:transform .3s ease,border-color .3s ease}
+.vid-card:hover{transform:translateY(-3px);border-color:var(--accent)}
+.vid-thumb{position:relative;display:block;aspect-ratio:16/9;overflow:hidden;background:var(--code-bg)}
+.vid-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s ease}
+.vid-card:hover .vid-thumb img{transform:scale(1.05)}
+.vid-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:58px;height:58px;border-radius:50%;background:rgba(10,16,24,.68);border:1px solid rgba(255,255,255,.4);display:grid;place-items:center;transition:background .3s ease,transform .3s ease,border-color .3s ease}
+.vid-card:hover .vid-play{background:var(--accent);border-color:var(--accent);transform:translate(-50%,-50%) scale(1.08)}
+.vid-play svg{width:22px;height:22px;margin-left:3px;fill:#fff}
+.vid-cap{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:.75rem .9rem;font-family:"Bricolage Grotesque",sans-serif;font-size:.85rem;color:var(--ink)}
+.vid-cap .yt{color:var(--ink-faint);font-size:.78rem;transition:color .25s ease}
+.vid-card:hover .vid-cap .yt{color:var(--accent)}
+
 .hidden{display:none !important}
 .no-hits{color:var(--ink-faint);font-style:italic;padding:2rem 0}
 
@@ -4035,28 +4048,20 @@ Release 3 (contract) Stop writing old. DROP it.</code></pre>
       </div>
 
       <h4>Walkthrough video</h4>
-      <a href="https://www.youtube.com/watch?v=L_bou0a8mH8" target="_blank" rel="noopener" style="display:block;max-width:34rem;text-decoration:none;border:1px solid var(--rule);border-radius:6px;overflow:hidden;background:var(--card)">
-        <svg viewBox="0 0 560 200" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:auto;background:var(--code-bg)" role="img" aria-label="YouTube walkthrough: CI/CD pipeline from Azure Repos to IIS">
-          <rect width="560" height="200" fill="var(--code-bg)"/>
-          <g opacity="0.22" stroke="var(--accent)" stroke-width="1.5" fill="none">
-            <rect x="34" y="52" width="92" height="44" rx="5"/>
-            <rect x="234" y="52" width="92" height="44" rx="5"/>
-            <rect x="434" y="52" width="92" height="44" rx="5"/>
-            <path d="M126 74 H234 M326 74 H434" stroke-dasharray="5 5"/>
-          </g>
-          <g font-family="JetBrains Mono, monospace" font-size="11" fill="var(--accent)" opacity="0.6" text-anchor="middle">
-            <text x="80"  y="78">Azure Repos</text>
-            <text x="280" y="78">Pipeline</text>
-            <text x="480" y="78">IIS</text>
-          </g>
-          <circle cx="280" cy="140" r="26" fill="var(--accent)" opacity="0.95"/>
-          <path d="M272 128 L294 140 L272 152 Z" fill="var(--code-bg)"/>
-          <text x="280" y="188" font-family="Bricolage Grotesque, sans-serif" font-size="13" fill="var(--code-ink)" text-anchor="middle">Watch on YouTube</text>
-        </svg>
-        <div style="padding:.7rem .9rem;font-family:'Bricolage Grotesque',sans-serif">
-          <div style="font-weight:600;font-size:.95rem;color:var(--ink);line-height:1.3">CI/CD pipeline — Azure Repos to IIS deployment</div>
-          <div style="font-size:.8rem;color:var(--ink-faint);margin-top:.2rem">youtube.com · opens in a new tab</div>
-        </div>
+      <a class="vid-card" href="https://www.youtube.com/watch?v=L_bou0a8mH8" target="_blank" rel="noopener" aria-label="Watch the CI/CD walkthrough on YouTube">
+        <span class="vid-thumb">
+          <img loading="lazy"
+               src="https://img.youtube.com/vi/L_bou0a8mH8/maxresdefault.jpg"
+               onerror="this.onerror=null;this.src='https://img.youtube.com/vi/L_bou0a8mH8/hqdefault.jpg';"
+               alt="CI/CD pipeline walkthrough — Azure Repos to IIS deployment">
+          <span class="vid-play" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          </span>
+        </span>
+        <span class="vid-cap">
+          <span>CI/CD — Azure Repos to IIS deployment</span>
+          <span class="yt">YouTube &#8599;</span>
+        </span>
       </a>
 
       <div class="ref"><span>Reference</span>
