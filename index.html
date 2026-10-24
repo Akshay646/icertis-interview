@@ -233,6 +233,7 @@ footer{border-top:1px solid var(--rule);margin-top:4rem;padding:2rem 0;color:var
     <a href="#sql">SQL</a>
     <div class="grp">Web</div>
     <a href="#aspnet">ASP.NET Core MVC &amp; Web API</a>
+    <a href="#testing">Testing</a>
     <a href="#auth">Authentication &amp; security</a>
     <div class="grp">Coding</div>
     <a href="#dsa">DSA &amp; coding problems</a>
@@ -2713,6 +2714,199 @@ await Task.WhenAll(ta, tb, tc);</code></pre>
       <div class="ref"><span>Reference</span>
         <a href="https://www.rfc-editor.org/rfc/rfc9110.html" target="_blank" rel="noopener">RFC 9110 — HTTP Semantics</a>
         <a href="https://www.rfc-editor.org/rfc/rfc9457.html" target="_blank" rel="noopener">RFC 9457 — Problem Details for HTTP APIs</a>
+      </div>
+    </div>
+  </details>
+</section>
+
+<!-- ============ TESTING ============ -->
+<section id="testing">
+  <div class="sec-head"><h2>Testing</h2><span class="count">3 questions</span></div>
+  <p class="sec-note">Reported indirectly — xUnit appears on most .NET job descriptions, and L2 rounds ask how you verify what you build. <strong>xUnit</strong> is the test framework; <strong>Moq</strong> is the mocking library most .NET teams pair with it.</p>
+
+  <details class="qa">
+    <summary>How do you write unit tests with xUnit?</summary>
+    <div class="body">
+      <p><strong>Purpose:</strong> test a single method or class in isolation, without touching the real database, API or any other service.</p>
+
+      <h4>[Fact] — one fixed scenario</h4>
+<pre><code>[Fact]
+public void CalculateTotal_ReturnsCorrectAmount()
+{
+    var service = new OrderService();
+
+    var result = service.CalculateTotal(100, 10);
+
+    Assert.Equal(110, result);
+}</code></pre>
+      <p>No database, no HTTP, no configuration. Just the calculation.</p>
+
+      <h4>[Theory] — the same test across multiple inputs</h4>
+<pre><code>[Theory]
+[InlineData(100, 10, 110)]
+[InlineData(200, 20, 220)]
+[InlineData(50,   5,  55)]
+public void CalculateTotal_ReturnsCorrectAmount(
+    decimal price, decimal tax, decimal expected)
+{
+    var service = new OrderService();
+
+    var result = service.CalculateTotal(price, tax);
+
+    Assert.Equal(expected, result);
+}</code></pre>
+      <ul>
+        <li><code>[Theory]</code> marks a parameterised test.</li>
+        <li><code>[InlineData]</code> supplies the inputs and the expected result.</li>
+        <li>xUnit runs the test three times, once per input set — and reports them as three separate results, so you see exactly which case failed.</li>
+      </ul>
+      <p><strong>The difference:</strong> <code>[Fact]</code> tests one fixed scenario; <code>[Theory]</code> tests several scenarios with different inputs.</p>
+
+      <h4>Mocking a dependency with Moq</h4>
+      <p>When the class under test needs a collaborator, you supply a fake rather than the real thing:</p>
+<pre><code>[Fact]
+public async Task PlaceOrder_SendsConfirmationEmail()
+{
+    var emailService = new Mock&lt;IEmailService&gt;();
+    var service = new OrderService(emailService.Object);
+
+    await service.PlaceOrderAsync(new Order { Email = "a@b.com" });
+
+    emailService.Verify(e =&gt; e.SendAsync("a@b.com", It.IsAny&lt;string&gt;()), Times.Once);
+}</code></pre>
+      <p>The test asserts on <em>behaviour</em> — that the email service was called once — without an SMTP server existing anywhere.</p>
+
+      <h4>Running them</h4>
+<pre><code>dotnet test                              # whole solution
+dotnet test --filter "CalculateTotal"    # one test or class</code></pre>
+      <p>Or Test Explorer in Visual Studio. In CI this is the gate that fails the build.</p>
+
+      <div class="key">
+        <span class="lbl">Structure every test the same way</span>
+        <p><strong>Arrange, Act, Assert.</strong> Set up the inputs, call the one thing you are testing, check the result. Name tests so a failure in a CI log is self-explanatory: <code>MethodName_Scenario_ExpectedOutcome</code>.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-with-dotnet-test" target="_blank" rel="noopener">Unit testing with dotnet test and xUnit — Microsoft Learn</a>
+        <a href="https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-best-practices" target="_blank" rel="noopener">Unit testing best practices</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>How do you write integration tests for an ASP.NET Core API?</summary>
+    <div class="body">
+      <p><strong>Purpose:</strong> verify that real components work together — routing, middleware, controller, service, database — rather than one method in isolation.</p>
+
+      <h4>The pieces and what each does</h4>
+      <table>
+        <tr><th>Component</th><th>Purpose</th></tr>
+        <tr><td>xUnit</td><td>Executes the tests and verifies results</td></tr>
+        <tr><td><code>WebApplicationFactory&lt;Program&gt;</code></td><td>Starts the ASP.NET Core app in an in-memory test host</td></tr>
+        <tr><td><code>Program</code></td><td>The entry point that configures middleware and DI</td></tr>
+        <tr><td><code>ConfigureWebHost()</code></td><td>Customises the host for testing</td></tr>
+        <tr><td><code>ConfigureTestServices()</code></td><td>Replaces selected production dependencies — e.g. swap in a test database</td></tr>
+        <tr><td><code>CreateClient()</code></td><td>Returns an <code>HttpClient</code> wired to the in-memory server</td></tr>
+      </table>
+
+      <h4>Project layout</h4>
+<pre><code>MySolution/
+├── MyApi/
+│   ├── Program.cs
+│   ├── Controllers/OrdersController.cs
+│   └── Services/OrderService.cs
+│
+└── MyApi.Tests/
+    ├── CustomWebApplicationFactory.cs
+    └── OrdersApiTests.cs</code></pre>
+      <p>The test project references the API project plus the testing packages.</p>
+
+      <h4>A. Program.cs — the real application</h4>
+<pre><code>var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+builder.Services.AddScoped&lt;IOrderService, OrderService&gt;();
+
+var app = builder.Build();
+
+app.MapControllers();
+app.Run();
+
+public partial class Program { }     // ← makes Program visible to the test project</code></pre>
+      <p>That last line matters. With top-level statements the generated <code>Program</code> class is internal, so <code>WebApplicationFactory&lt;Program&gt;</code> cannot see it. The partial declaration fixes that.</p>
+
+      <h4>B. CustomWebApplicationFactory.cs — test configuration</h4>
+<pre><code>public class CustomWebApplicationFactory : WebApplicationFactory&lt;Program&gt;
+{
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.ConfigureTestServices(services =&gt;
+        {
+            // Replace the production database registration
+            // with an isolated test database.
+        });
+    }
+}</code></pre>
+      <p>Keep the real controller and the real service. Replace only what must be isolated — typically the database. Mocking the service here would defeat the point: you want the actual controller → service → database path exercised.</p>
+
+      <h4>C. OrdersApiTests.cs — the test</h4>
+<pre><code>public class OrdersApiTests : IClassFixture&lt;CustomWebApplicationFactory&gt;
+{
+    private readonly HttpClient _client;
+
+    public OrdersApiTests(CustomWebApplicationFactory factory)
+    {
+        _client = factory.CreateClient();
+    }
+
+    [Fact]
+    public async Task GetOrder_ReturnsSuccess()
+    {
+        var response = await _client.GetAsync("/api/orders/123");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+}</code></pre>
+      <p><code>IClassFixture&lt;T&gt;</code> means the factory is created once and shared across every test in the class, rather than booting the app per test.</p>
+      <p>This assumes the test database is seeded and contains order <code>123</code>.</p>
+
+      <h4>What actually happens when you run it</h4>
+<pre><code>1. You run the TEST project — not the API separately
+2. xUnit executes the test method
+3. WebApplicationFactory bootstraps the API using Program
+4. CreateClient() returns a client wired to the in-memory test server
+5. GetAsync("/api/orders/123") sends the request to that server
+6. Real routing → real middleware → real controller → real service execute
+7. The test asserts on the response</code></pre>
+
+      <div class="flag">
+        <span class="lbl">The point people get wrong</span>
+        <p>That request does <strong>not</strong> hit your localhost API, and it does not hit your hosted API. There is nothing listening on a port. It calls the application running inside the test process's own in-memory server — which is why these tests need no environment running and work identically in CI.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/aspnet/core/test/integration-tests" target="_blank" rel="noopener">Integration tests in ASP.NET Core — Microsoft Learn</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Unit test vs integration test — when do you write which?</summary>
+    <div class="body">
+      <table>
+        <tr><th>Aspect</th><th>Unit test</th><th>Integration test</th></tr>
+        <tr><td>What is tested</td><td>One method or class</td><td>Several components together</td></tr>
+        <tr><td>Controller</td><td>Called directly as an object</td><td>Exercised through HTTP routing</td></tr>
+        <tr><td>Service</td><td>Usually mocked or isolated</td><td>The real service runs</td></tr>
+        <tr><td>Database</td><td>Not involved</td><td>Isolated test database</td></tr>
+        <tr><td>HTTP</td><td>Not required</td><td><code>HttpClient</code> against the test server</td></tr>
+        <tr><td>Speed</td><td>Milliseconds</td><td>Seconds — the host boots</td></tr>
+        <tr><td>Purpose</td><td>Verify individual logic</td><td>Verify the pieces integrate</td></tr>
+      </table>
+
+      <p><strong>The practical split:</strong> unit tests for logic with branches — pricing rules, validation, calculations, state machines. Integration tests for the wiring — does this route map, does authorization apply, does the query actually run against a real database schema. A passing unit test tells you nothing about whether your EF query translates to valid SQL; only an integration test does.</p>
+
+      <div class="key">
+        <span class="lbl">The answer to give</span>
+        <p>“I use xUnit for both. Unit tests verify individual methods or classes in isolation, with Moq for dependencies. For API integration tests I use <code>WebApplicationFactory&lt;Program&gt;</code> to bootstrap the real application in an in-memory test server, send requests with <code>CreateClient()</code>, and assert on the responses — keeping the real controller and service while swapping in an isolated test database.”</p>
       </div>
     </div>
   </details>
