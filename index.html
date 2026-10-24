@@ -1377,49 +1377,73 @@ instance before a previous operation completed.</code></pre>
   <details class="qa">
     <summary>Which design pattern was used in your project?</summary>
     <div class="body">
-      <p>The highest-risk question in the set. Naming a pattern you did not deliberately choose invites a follow-up you cannot answer.</p>
+      <p>The highest-risk question in the set. Name a pattern you did not deliberately choose and the next question is one you cannot answer.</p>
 
       <h4>Answer in four beats</h4>
       <ol>
         <li><strong>The problem</strong> — what was painful before.</li>
         <li><strong>The pattern</strong> — named correctly.</li>
         <li><strong>The implementation</strong> — the actual types involved.</li>
-        <li><strong>The cost</strong> — what it made worse. Everything does.</li>
+        <li><strong>The trade-off</strong> — what the pattern made <em>worse</em>. Every one of them costs something, and naming it is what makes the answer credible rather than rehearsed.</li>
       </ol>
 
-      <h4>A worked example — vendor integration</h4>
-      <p><em>Problem:</em> three products each called vendor APIs directly. A vendor changed a contract and we edited three codebases.</p>
-      <p><em>Pattern:</em> <strong>Adapter</strong> (one internal contract wrapping each vendor’s shape) resolved by a <strong>Factory</strong> from tenant configuration.</p>
-<pre><code>// one internal contract every product codes against
+      <h4>A worked example — a provider-agnostic platform service</h4>
+      <p><em>Problem:</em> several products each integrated directly against an external platform's APIs. The platform changed a contract and every consuming codebase needed editing. Adding a second provider later would have meant doing all of it again, per product.</p>
+      <p><em>Pattern:</em> a <strong>Facade</strong> over the provider, with a <strong>Registry</strong> resolving which provider serves which consumer, and an <strong>Adapter</strong> per provider behind one internal contract.</p>
+
+<pre><code>// FACADE — one internal contract. Consumers code against this and nothing else.
 public interface IDocumentProvider
 {
     Task&lt;IReadOnlyList&lt;DocumentDto&gt;&gt; ListAsync(string folderId, CancellationToken ct);
+    Task&lt;Uri&gt; UploadAsync(Stream content, string folderId, CancellationToken ct);
 }
 
-// one adapter per vendor — translates our shape to theirs and back
-public class AcmeDocumentProvider : IDocumentProvider { /* Acme REST + paging */ }
-public class GlobexDocumentProvider : IDocumentProvider { /* Globex GraphQL */ }
+// ADAPTER — one per provider, translating our shape to theirs and back
+public class ApsDocumentProvider : IDocumentProvider { /* APS REST, paging, retries */ }</code></pre>
 
-// factory resolves by the tenant's configured vendor key
-public class DocumentProviderFactory(IServiceProvider sp)
-{
-    public IDocumentProvider For(string vendorKey) =&gt;
-        sp.GetRequiredKeyedService&lt;IDocumentProvider&gt;(vendorKey);
-}</code></pre>
-      <p><em>Cost — say this part:</em> the shared contract becomes a lowest common denominator. When one vendor exposes something the others do not, you either leak it through the abstraction or lose the capability. That tension is real, and naming it is what makes the answer credible.</p>
+      <p><em>Implementation:</em> the resolution is <strong>data, not code</strong>. Consumer context arrives on the request (middleware resolves which product is calling), the registry looks up that consumer's provider registration and credentials in the database, and the matching adapter is constructed.</p>
+
+<pre><code>request from a consuming product
+        │
+        ▼
+consumer context middleware        → which consumer is this?
+        │
+        ▼
+provider registry (DB-backed)      → which provider is registered for them,
+        │                            and which stored credentials?
+        ▼
+IDocumentProvider adapter          → the call goes out
+</code></pre>
+
+      <p>The point of registry-over-switch: onboarding a new consumer or swapping a provider is a <strong>row</strong>, not a deployment. Nothing in the facade is recompiled.</p>
+
+      <p><em>Trade-off — say this part out loud:</em></p>
+      <ul>
+        <li><strong>Lowest common denominator.</strong> One contract across providers means a capability only one of them has either leaks through the abstraction or gets dropped. That tension never fully resolves.</li>
+        <li><strong>Indirection costs debugging.</strong> A failure is now three hops from the consumer, so correlation IDs and structured logs stop being nice-to-have.</li>
+        <li><strong>Configuration becomes a failure mode.</strong> When routing lives in the database, a bad row is a production incident — and it will not show up in code review.</li>
+      </ul>
 
       <div class="key">
         <span class="lbl">Patterns you have almost certainly used without naming them</span>
         <ul>
-          <li><strong>Repository + Unit of Work</strong> — <code>DbSet&lt;T&gt;</code> and <code>DbContext</code> are literally these.</li>
+          <li><strong>Facade</strong> — any service that hides a complicated subsystem behind a simpler interface.</li>
+          <li><strong>Adapter</strong> — translating an external API's shape into your own.</li>
+          <li><strong>Registry</strong> — resolving an implementation from stored configuration rather than a <code>switch</code>.</li>
+          <li><strong>Repository + Unit of Work</strong> — <code>DbSet&lt;T&gt;</code> and <code>DbContext</code> literally are these.</li>
           <li><strong>Dependency Injection</strong> — every constructor in your codebase.</li>
-          <li><strong>Chain of Responsibility</strong> — ASP.NET Core middleware.</li>
+          <li><strong>Chain of Responsibility</strong> — ASP.NET Core middleware, including your own consumer-context middleware.</li>
+          <li><strong>Decorator</strong> — caching, retry or logging wrappers; <code>DelegatingHandler</code> on <code>HttpClient</code>.</li>
           <li><strong>Options</strong> — <code>IOptions&lt;T&gt;</code> binding configuration to typed classes.</li>
-          <li><strong>Decorator</strong> — any caching, retry or logging wrapper; <code>DelegatingHandler</code> on <code>HttpClient</code>.</li>
-          <li><strong>Mediator</strong> — if you use MediatR.</li>
-          <li><strong>Observer</strong> — events, and SignalR push.</li>
+          <li><strong>Observer</strong> — events, and push notifications over SignalR.</li>
         </ul>
-        <p>Scan your own codebase before the interview and pick two you can defend in depth.</p>
+        <p>Scan your own codebase before the interview and pick two you can defend in depth — including what each one cost.</p>
+      </div>
+
+      <div class="flag">
+        <span class="lbl">Facade vs Adapter — they will probe this</span>
+        <p>Both wrap something, and people use the words interchangeably. <strong>Adapter changes an interface</strong> so an existing class fits where it otherwise would not — the shapes are mismatched and you are translating. <strong>Facade simplifies a subsystem</strong> — the shapes are fine, there is just too much of it, so you expose one coherent entry point.</p>
+        <p>A service that wraps one vendor's SDK to match your contract is an Adapter. A service that hides an entire platform's authentication, upload, translation and metadata APIs behind four methods is a Facade. A real platform service is usually both, at different layers — and saying that is a better answer than picking one.</p>
       </div>
     </div>
   </details>
@@ -2108,7 +2132,7 @@ if (db.Orders.Any())         // SELECT TOP(1) 1  — stops at the first row</cod
 
 <!-- ============ EF ============ -->
 <section id="ef">
-  <div class="sec-head"><h2>Entity Framework</h2><span class="count">3 questions</span></div>
+  <div class="sec-head"><h2>Entity Framework</h2><span class="count">12 questions</span></div>
   <p class="sec-note">Reported as “EF” and “EF performance”. <strong>EF = Entity Framework</strong>, Microsoft's ORM — Object-Relational Mapper — which maps C# classes to database tables. In practice this round is almost always about N+1 and tracking.</p>
 
   <details class="qa">
@@ -2265,6 +2289,294 @@ var count = project.Documents.Count;    // ← a SQL query fires HERE, invisibly
       </div>
       <div class="ref"><span>Reference</span>
         <a href="https://learn.microsoft.com/en-us/ef/core/querying/related-data/" target="_blank" rel="noopener">Loading related data — EF Core docs</a>
+      </div>
+    </div>
+  </details>
+  <details class="qa">
+    <summary>How do you investigate a slow EF Core query?</summary>
+    <div class="body">
+      <p>An endpoint takes five seconds to return 50 orders. <strong>Do not assume EF Core is the problem</strong> — it could be SQL Server, the amount of data, network, or your own code after materialisation. Answer as a method.</p>
+
+      <h4>1. Look at the generated SQL</h4>
+<pre><code>builder.Services.AddDbContext&lt;AppDbContext&gt;(o =&gt; o
+    .UseSqlServer(cs)
+    .LogTo(Console.WriteLine, LogLevel.Information));   // dev only</code></pre>
+      <p>Is it selecting columns nobody reads? Joining tables the response does not need? Is it <em>one</em> query or a hundred?</p>
+
+      <h4>2. Read the execution plan</h4>
+      <p>Paste the SQL into SSMS with the actual plan on. Look for scans where you expected seeks, key lookups repeating thousands of times, and a big gap between estimated and actual rows. Confirm the bottleneck <em>before</em> adding an index.</p>
+
+      <h4>3. Fetch only what the endpoint needs</h4>
+<pre><code>var orders = await db.Orders
+    .AsNoTracking()
+    .Where(o =&gt; o.Status == "Pending")
+    .Select(o =&gt; new { o.Id, o.Total })     // two columns, not thirty
+    .ToListAsync(ct);</code></pre>
+
+      <h4>4. Count the queries</h4>
+      <p>One slow endpoint is often a hundred fast queries. See the N+1 question.</p>
+
+      <h4>5. Measure again</h4>
+      <p>Compare SQL duration, total request time, query count and payload size. If three of four improved and one got worse, you need to know that.</p>
+
+      <div class="flag">
+        <span class="lbl">The scenario they like: “EF takes 5s, the same SQL takes 100ms”</span>
+        <p>Those two numbers are not measuring the same thing. SSMS reports execution time; your endpoint includes connection acquisition, <strong>materialisation</strong> (turning rows into objects), change tracking, serialisation and network transfer.</p>
+        <p>Check in this order: how many rows and columns are actually coming back, whether tracking is on, whether extra queries are firing, and how big the JSON response is. A query returning 50,000 rows runs fast in SSMS and is slow in your API for reasons that have nothing to do with SQL.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/ef/core/performance/" target="_blank" rel="noopener">EF Core performance — Microsoft Learn</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>What is the lifetime of DbContext, and why is a singleton wrong?</summary>
+    <div class="body">
+      <p><code>AddDbContext</code> registers it as <strong>scoped</strong> — one instance per HTTP request.</p>
+<pre><code>builder.Services.AddDbContext&lt;AppDbContext&gt;(o =&gt; o.UseSqlServer(cs));</code></pre>
+      <p>That matches what a <code>DbContext</code> is: a <strong>unit of work</strong>. It accumulates tracked entities during one request and commits them together.</p>
+
+      <h4>Why not a singleton</h4>
+      <ul>
+        <li><strong>It is not thread-safe.</strong> Two concurrent requests using one context produce <code>A second operation was started on this context instance before a previous operation completed.</code></li>
+        <li><strong>The change tracker never empties.</strong> Every entity ever loaded stays in memory for the life of the process.</li>
+        <li><strong>Stale reads.</strong> A tracked entity is returned from the tracker rather than the database, so request 900 can see values from request 3.</li>
+      </ul>
+
+      <h4>Background workers — no HTTP request, so no scope</h4>
+<pre><code>// ✗ a singleton hosted service cannot hold a scoped DbContext
+public class OrderExpiryWorker(AppDbContext db) : BackgroundService { }
+
+// ✓ create a scope per unit of work
+public class OrderExpiryWorker(IServiceScopeFactory scopeFactory) : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken ct)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService&lt;AppDbContext&gt;();
+        /* work, then the scope disposes the context */
+    }
+}</code></pre>
+      <p>For concurrent message processing, <code>IDbContextFactory&lt;AppDbContext&gt;</code> is the cleaner option — each message handler calls <code>CreateDbContext()</code> and gets its own.</p>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/ef/core/dbcontext-configuration/" target="_blank" rel="noopener">DbContext lifetime and configuration — EF Core docs</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>How does change tracking work, and what are the entity states?</summary>
+    <div class="body">
+<pre><code>var order = await db.Orders.FirstAsync(o =&gt; o.Id == 123, ct);
+// state: Unchanged — EF stored a snapshot of every property
+
+order.Status = "Completed";
+// state: Modified — EF compares current vs snapshot on save
+
+await db.SaveChangesAsync(ct);
+// UPDATE [Orders] SET [Status] = @p0 WHERE [Id] = @p1
+// state back to: Unchanged</code></pre>
+      <p>Note what you did <em>not</em> write: no <code>db.Orders.Update(order)</code>. For a tracked entity, changing a property is enough.</p>
+      <table>
+        <tr><th>State</th><th>Meaning</th><th>On SaveChanges</th></tr>
+        <tr><td><code>Added</code></td><td>New entity</td><td>INSERT</td></tr>
+        <tr><td><code>Modified</code></td><td>Tracked, with changes detected</td><td>UPDATE</td></tr>
+        <tr><td><code>Deleted</code></td><td>Marked for removal</td><td>DELETE</td></tr>
+        <tr><td><code>Unchanged</code></td><td>Tracked, nothing changed</td><td>nothing</td></tr>
+        <tr><td><code>Detached</code></td><td>Not tracked by this context</td><td>nothing</td></tr>
+      </table>
+      <div class="flag">
+        <span class="lbl">The trap</span>
+<pre><code>var order = await db.Orders.AsNoTracking().FirstAsync(o =&gt; o.Id == 123, ct);
+order.Status = "Completed";
+await db.SaveChangesAsync(ct);     // saves NOTHING, throws nothing</code></pre>
+        <p>The entity is <code>Detached</code>. EF has no snapshot, so there is nothing to compare and nothing to write. Silent no-op — which is why this one costs people an afternoon.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/ef/core/change-tracking/entity-states" target="_blank" rel="noopener">Entity states — EF Core docs</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Add vs Attach vs Update — and the bug that eats your columns</summary>
+    <div class="body">
+      <p>All three change an entity's <em>state</em>. That state decides the SQL.</p>
+<pre><code>var order = new Order { Id = 123, Status = "Completed" };
+
+db.Orders.Add(order);      // → Added     → INSERT
+db.Orders.Attach(order);   // → Unchanged → nothing (now tracked, that's all)
+db.Orders.Update(order);   // → Modified  → UPDATE every mapped property</code></pre>
+
+      <div class="flag">
+        <span class="lbl">The real-world bug</span>
+        <p>Your API receives a PATCH containing two fields:</p>
+<pre><code>{ "id": 123, "status": "Completed" }</code></pre>
+<pre><code>var order = request.ToEntity();   // Status set; CustomerId, Total, Notes all default
+db.Orders.Update(order);
+await db.SaveChangesAsync(ct);
+
+// UPDATE [Orders]
+// SET [Status]='Completed', [CustomerId]=0, [Total]=0.0, [Notes]=NULL
+// WHERE [Id]=123</code></pre>
+        <p><code>Update()</code> marks <em>every</em> mapped property modified, including the ones the caller never sent. You have just wiped real data with defaults, and the response is 200 OK.</p>
+        <p><strong>Safe pattern for partial updates — load, change, save:</strong></p>
+<pre><code>var order = await db.Orders.FirstOrDefaultAsync(o =&gt; o.Id == request.Id, ct);
+if (order is null) return NotFound();
+
+order.Status = request.Status;      // only what was sent
+await db.SaveChangesAsync(ct);      // UPDATE [Orders] SET [Status]=@p0 WHERE [Id]=@p1</code></pre>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>How does EF Core handle transactions?</summary>
+    <div class="body">
+      <p><strong>A single <code>SaveChanges</code> is already a transaction.</strong> Everything in it commits or nothing does.</p>
+<pre><code>db.Orders.Add(order);
+db.OrderItems.AddRange(items);
+
+await db.SaveChangesAsync(ct);   // one transaction: order + items, all or nothing</code></pre>
+
+      <h4>When you need an explicit one</h4>
+      <p>When several <code>SaveChanges</code> calls must succeed or fail together:</p>
+<pre><code>await using var tx = await db.Database.BeginTransactionAsync(ct);
+try
+{
+    db.Orders.Add(order);
+    await db.SaveChangesAsync(ct);          // needs the generated Id
+
+    db.AuditLogs.Add(new AuditLog { OrderId = order.Id });
+    await db.SaveChangesAsync(ct);
+
+    await tx.CommitAsync(ct);
+}
+catch
+{
+    await tx.RollbackAsync(ct);
+    throw;
+}</code></pre>
+
+      <h4>When SaveChanges fails</h4>
+      <table>
+        <tr><th>Exception</th><th>Cause</th><th>Response</th></tr>
+        <tr><td><code>DbUpdateConcurrencyException</code></td><td>Row changed since you read it</td><td>409, reload</td></tr>
+        <tr><td><code>DbUpdateException</code> (unique)</td><td>Duplicate key</td><td>409 or 400 — do not retry</td></tr>
+        <tr><td><code>DbUpdateException</code> (FK)</td><td>Referenced row missing</td><td>400 — do not retry</td></tr>
+        <tr><td>Timeout / transient</td><td>Connection, deadlock victim</td><td>Retry, bounded</td></tr>
+      </table>
+      <p><strong>Do not blindly retry <code>DbUpdateException</code></strong> — retrying a constraint violation just fails again. And a failed save does not reset the context: the entities are still tracked in their modified state, so retrying without fixing the data repeats the same SQL.</p>
+      <div class="flag">
+        <span class="lbl">Scope limit worth saying</span>
+        <p>This is all <em>one database, one context</em>. A transaction does not span microservices. For workflows across services you need a saga with compensating actions, not a distributed transaction.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/ef/core/saving/transactions" target="_blank" rel="noopener">Transactions — EF Core docs</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>You need to update 10,000 rows. Load entities, or ExecuteUpdate?</summary>
+    <div class="body">
+<pre><code>// A — load, mutate, save
+var orders = await db.Orders.Where(o =&gt; o.Status == "Pending").ToListAsync(ct);
+foreach (var o in orders) o.Status = "Expired";
+await db.SaveChangesAsync(ct);
+// 10,000 entities materialised + 10,000 snapshots + 10,000 UPDATE statements</code></pre>
+<pre><code>// B — update in the database
+await db.Orders
+    .Where(o =&gt; o.Status == "Pending")
+    .ExecuteUpdateAsync(set =&gt; set.SetProperty(o =&gt; o.Status, "Expired"), ct);
+
+// UPDATE [Orders] SET [Status]='Expired' WHERE [Status]='Pending'   ← one statement</code></pre>
+      <p><strong>Choose A</strong> when each row needs its own logic, or you need domain events and validation to run. <strong>Choose B</strong> for a uniform change across many rows.</p>
+      <div class="flag">
+        <span class="lbl">What ExecuteUpdate skips</span>
+        <p>It bypasses the change tracker entirely. Already-tracked entities keep their old values in memory and know nothing about the update. It also fires immediately — it is not queued until <code>SaveChanges</code>, and two calls are not automatically one transaction. <code>ExecuteDeleteAsync</code> behaves the same way.</p>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>How do you handle large result sets?</summary>
+    <div class="body">
+      <p>An endpoint returns 100,000 orders for a page showing 20. First question: does it need to?</p>
+<pre><code>var page = await db.Orders
+    .AsNoTracking()
+    .OrderBy(o =&gt; o.Id)                   // stable ordering — without it paging is undefined
+    .Skip(40).Take(20)
+    .Select(o =&gt; new { o.Id, o.Total })
+    .ToListAsync(ct);</code></pre>
+      <h4>Offset vs keyset paging</h4>
+<pre><code>// OFFSET: SQL Server still reads and discards the skipped rows
+.Skip(100000).Take(20)        // reads 100,020 rows to return 20
+
+// KEYSET: index seek straight to the position
+.Where(o =&gt; o.Id &gt; lastSeenId).OrderBy(o =&gt; o.Id).Take(20)   // reads 20</code></pre>
+      <p>Offset is fine for page 3 and terrible for page 5,000. Keyset needs a stable unique sort key and gives up random page access — you get "next", not "jump to 47".</p>
+      <p>For a background job that genuinely must touch every row, stream instead of buffering:</p>
+<pre><code>await foreach (var order in db.Orders.AsNoTracking().AsAsyncEnumerable().WithCancellation(ct))
+{
+    /* processed one at a time — the whole set never sits in memory */
+}</code></pre>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>What are migrations, and how do you apply them safely in production?</summary>
+    <div class="body">
+      <p>Adding a property changes your C# model. It does not change the database — a <strong>migration</strong> is the recorded schema change that brings the two back in line.</p>
+<pre><code>public DateTime? DeliveryDate { get; set; }   // model changed</code></pre>
+<pre><code>dotnet ef migrations add AddDeliveryDate   # generates Up() and Down()
+dotnet ef migrations script                # generates reviewable SQL</code></pre>
+
+      <h4>Deploying safely</h4>
+      <ol>
+        <li>Review the generated SQL — not just the C# migration.</li>
+        <li>Test against a database that looks like production in size and data.</li>
+        <li>Ask whether it locks a large table. Adding a non-nullable column with a default rewrites every row.</li>
+        <li>Ask whether the old application version still works against the new schema — during a rolling deploy, both run at once.</li>
+        <li>Apply through the release process, with rollback planned.</li>
+      </ol>
+
+      <div class="flag">
+        <span class="lbl">The senior-level point</span>
+        <p><strong>Do not call <code>db.Database.Migrate()</code> at application startup in production.</strong> With several instances starting together, they race to apply the same migration — and a long migration blocks startup, which can fail your health check and cause the orchestrator to kill the pod mid-migration.</p>
+        <p>Run migrations as a separate, controlled step before the new version starts. Pair it with expand–contract for breaking changes (see the CI/CD section).</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/ef/core/managing-schemas/migrations/applying" target="_blank" rel="noopener">Applying migrations — EF Core docs</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>How does EF Core protect against SQL injection?</summary>
+    <div class="body">
+      <p>LINQ queries are parameterised automatically:</p>
+<pre><code>var order = await db.Orders.FirstOrDefaultAsync(o =&gt; o.Id == orderId, ct);
+// SELECT TOP(1) ... WHERE [o].[Id] = @__orderId_0      ← a parameter, not text</code></pre>
+      <p>The value never becomes part of the SQL text, so it cannot change the statement's meaning.</p>
+      <h4>Where you can still break it</h4>
+<pre><code>// ✗ string concatenation — injectable
+var sql = $"SELECT * FROM Orders WHERE Status = '{status}'";
+await db.Orders.FromSqlRaw(sql).ToListAsync(ct);
+// status = "x' OR '1'='1"  → returns every row</code></pre>
+<pre><code>// ✓ FromSqlInterpolated parameterises the interpolated values
+await db.Orders
+    .FromSqlInterpolated($"SELECT * FROM Orders WHERE Status = {status}")
+    .ToListAsync(ct);
+// → WHERE Status = @p0</code></pre>
+      <p>The two look almost identical in source, which is the trap. <code>FromSqlRaw</code> with a pre-built string is raw text; <code>FromSqlInterpolated</code> turns each hole into a parameter. If you must use <code>FromSqlRaw</code>, pass parameters explicitly rather than concatenating.</p>
+      <div class="key">
+        <span class="lbl">The part you cannot parameterise</span>
+        <p>Table and column names. If a sort column comes from user input, validate it against an allow-list — a parameter cannot stand in for an identifier.</p>
+      </div>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/ef/core/querying/sql-queries" target="_blank" rel="noopener">SQL queries — EF Core docs</a>
       </div>
     </div>
   </details>
@@ -2878,6 +3190,11 @@ public partial class Program { }     // ← makes Program visible to the test pr
 6. Real routing → real middleware → real controller → real service execute
 7. The test asserts on the response</code></pre>
 
+      <div class="flag">
+        <span class="lbl">Do not test EF queries against the InMemory provider</span>
+        <p>It is tempting — no database, instant tests. But the InMemory provider is <strong>not a relational database</strong>. It does not enforce constraints, does not translate SQL, and does not behave like SQL Server on transactions. A query that passes there can still throw <em>“could not be translated”</em> in production.</p>
+        <p>Use a real relational engine in an isolated test database — SQL Server in a container is the honest option. SQLite is closer than InMemory but still differs.</p>
+      </div>
       <div class="flag">
         <span class="lbl">The point people get wrong</span>
         <p>That request does <strong>not</strong> hit your localhost API, and it does not hit your hosted API. There is nothing listening on a port. It calls the application running inside the test process's own in-memory server — which is why these tests need no environment running and work identically in CI.</p>
@@ -3609,48 +3926,143 @@ var client = new BlobServiceClient(
   <p class="sec-note">Reported as “CI/CD” and “deployments” in two separate accounts. <strong>CI = Continuous Integration</strong> (merge and verify often). <strong>CD = Continuous Delivery/Deployment</strong> (ship the verified artifact).</p>
 
   <details class="qa">
-    <summary>Describe your CI/CD pipeline</summary>
+    <summary>Describe your CI/CD pipeline — Azure Repos to IIS, step by step</summary>
     <div class="body">
-      <p>Describe <em>stages and gates</em>. A pipeline without gates is just a script.</p>
+      <p>The setup: Azure Repos, a .NET microservice, IIS on Windows servers, two branches — <code>dev</code> and <code>main</code>. Walk it as five steps.</p>
 
-      <h4>CI — runs on every pull request</h4>
-<pre><code># azure-pipelines.yml / GitHub Actions — same shape either way
-- dotnet restore
-- dotnet build --configuration Release /warnaserror
-- dotnet test --collect:"XPlat Code Coverage"      # fails below threshold
-- dotnet list package --vulnerable                 # fails on known CVEs
-- integration tests against a containerised SQL Server
-- dotnet publish → publish a VERSIONED artifact</code></pre>
-      <p><strong>The rule that matters: build once, promote the same artifact.</strong> If you rebuild per environment you are deploying something you never tested.</p>
-<pre><code>✓ build → artifact v1.4.7 → dev → staging → production      (same bytes throughout)
-✗ build for dev → build for staging → build for production  (three different binaries)</code></pre>
+      <h4>Step 1 — Configure branch policies</h4>
+      <ul>
+        <li><code>dev</code> — changes arrive by pull request; <strong>build validation</strong> must pass before the PR can complete.</li>
+        <li><code>main</code> — PR from <code>dev</code> only, with reviewer approval.</li>
+      </ul>
+      <p>This is what stops unreviewed or broken code reaching a protected branch. Build validation runs the pipeline against the <em>merge result</em>, not your branch in isolation — so a change that builds alone but breaks once merged is caught before it lands.</p>
+      <p>Policies are configured in Azure Repos (Repos → Branches → Branch policies), not in YAML. That matters: a policy in a file could be edited in the same PR it is meant to guard.</p>
 
-      <h4>CD — promote through environments</h4>
+      <h4>Step 2 — Configure the pipeline</h4>
+      <p><code>azure-pipelines.yml</code> in the repo root, triggered on <code>dev</code> and <code>main</code>:</p>
+<pre><code>trigger:
+  branches: { include: [ dev, main ] }
+
+pool:
+  name: 'SoftTech-OnPrem'          # self-hosted — see note below
+
+steps:
+  - task: UseDotNet@2                               # 1. select the SDK
+    inputs: { version: '8.x' }
+  - script: dotnet restore                          # 2. restore packages
+  - script: dotnet build -c Release /warnaserror    # 3. build
+  - script: dotnet test  -c Release                 # 4. run tests
+  - script: dotnet publish -c Release -o $(Build.ArtifactStagingDirectory)
+  - publish: $(Build.ArtifactStagingDirectory)      # 6. store as artifact
+    artifact: drop</code></pre>
+      <p><strong>Built once.</strong> That same artifact is what goes to dev and later to production — not a rebuild per environment, which would mean deploying something you never tested.</p>
+
+      <div class="key">
+        <span class="lbl">Why the agent is self-hosted</span>
+        <p>A Microsoft-hosted agent runs in Azure and has no route to an IIS server sitting on a private corporate network. So you install the Azure Pipelines agent on a machine inside that network — or on the IIS box itself via a Deployment Group — and it <em>pulls</em> work over outbound HTTPS. No inbound firewall rule, which is exactly why this model exists.</p>
+      </div>
+
+      <h4>Step 3 — Deploy to development IIS (on merge to <code>dev</code>)</h4>
       <ol>
-        <li><strong>Dev</strong> — automatic on merge.</li>
-        <li><strong>Staging</strong> — smoke tests, then a manual approval gate.</li>
-        <li><strong>Production</strong> — a deployment strategy plus a monitored rollback window.</li>
+        <li>Pipeline downloads the published artifact.</li>
+        <li>The agent connects to the dev IIS server.</li>
+        <li><strong>Stop the application pool</strong>, or drop in <code>app_offline.htm</code> — otherwise the worker process holds the DLLs locked and the copy fails.</li>
+        <li>Deploy the files to the IIS site's physical directory.</li>
+        <li>Apply the dev environment's configuration.</li>
+        <li>Start the app pool and verify the API responds.</li>
       </ol>
+      <p><code>app_offline.htm</code> is worth naming: IIS sees that file in the content root, shuts the app down gracefully, and serves that page to anyone who hits the site. Deploy, delete it, the app restarts. Simplest honest answer to "how do you deal with file locks."</p>
 
-      <h4>Strategies, and when each earns its cost</h4>
+      <h4>Step 4 — Deploy to production IIS (on <code>main</code>)</h4>
+      <ol>
+        <li>Pipeline prepares the production deployment.</li>
+        <li><strong>Manual approval gate</strong> — an authorised person approves the release.</li>
+        <li>Deploy the <em>same</em> artifact to production IIS.</li>
+        <li>Apply production configuration, restart, run a smoke test.</li>
+      </ol>
+      <p>The approval is configured on the Azure DevOps <strong>Environment</strong> (Pipelines → Environments → Approvals and checks) rather than in YAML — so it cannot be bypassed by editing a file in a PR.</p>
+<pre><code>stages:
+  - stage: DeployDev
+    condition: eq(variables['Build.SourceBranch'], 'refs/heads/dev')
+    jobs:
+      - deployment: dev
+        environment: 'CivitBIM-Dev'
+
+  - stage: DeployProd
+    condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
+    jobs:
+      - deployment: prod
+        environment: 'CivitBIM-Prod'     # ← approval lives on this environment</code></pre>
+
+      <h4>Step 5 — Handle failures</h4>
       <table>
-        <tr><th>Strategy</th><th>How</th><th>Cost / catch</th></tr>
-        <tr><td>Rolling</td><td>Replace instances one at a time</td><td>Cheap — but two versions run at once, so code and schema must tolerate that</td></tr>
-        <tr><td>Blue/green</td><td>Two full environments, swap traffic</td><td>Instant rollback; double the infrastructure</td></tr>
-        <tr><td>Canary</td><td>5% of traffic first, watch error rate, then proceed</td><td>Best risk control; needs good telemetry to mean anything</td></tr>
+        <tr><th>Failure</th><th>Action</th></tr>
+        <tr><td>Build or tests fail</td><td><strong>Do not deploy.</strong> The pipeline stops at that stage.</td></tr>
+        <tr><td>Deployment fails</td><td>Stop the release, read the pipeline and application logs, restore the previous artifact if needed.</td></tr>
+        <tr><td>API errors after a successful deploy</td><td>Check startup errors, configuration, IIS logs, and Windows Event Viewer.</td></tr>
       </table>
+      <p>Rollback is just redeploying the previous artifact — which is the practical reason the build-once rule matters. Without versioned artifacts, rolling back means rebuilding an old commit and hoping it still compiles.</p>
+
+      <h4>Common IIS deployment failures</h4>
+      <table>
+        <tr><th>Symptom</th><th>Cause</th></tr>
+        <tr><td>File in use, cannot overwrite the DLL</td><td>App pool still running — stop it or use <code>app_offline.htm</code></td></tr>
+        <tr><td><code>500.30</code> after deploy</td><td>App started then crashed — read the stdout log and Event Viewer</td></tr>
+        <tr><td><code>500.19</code>, <code>0x8007000d</code>, blank config source</td><td>A required IIS module is missing — usually URL Rewrite</td></tr>
+        <tr><td>Wrong environment config live</td><td><code>appsettings.json</code> came from the artifact — use per-environment variables and a file transform; secrets from a variable group, never the repo</td></tr>
+        <tr><td>Migration ran twice</td><td>Startup migration across instances — run <code>dotnet ef database update</code> as its own pipeline step</td></tr>
+      </table>
+
+      <div class="key">
+        <span class="lbl">How to say it in the interview</span>
+        <p>“I structured the pipeline into build, test and deployment stages. We used Azure Repos with <code>dev</code> and <code>main</code> branches. After a successful build and automated tests the pipeline published the .NET application as an artifact. Changes merged into <code>dev</code> were deployed to development IIS; production deployment from <code>main</code> required approval. During deployment we handled the IIS application pool, environment-specific configuration, and post-deployment API verification.”</p>
+        <p>Then stop and let them pick a thread. They usually ask about the approval gate, the agent, or rollback.</p>
+      </div>
 
       <div class="flag">
         <span class="lbl">The question underneath: zero-downtime database migrations</span>
-        <p>During a rolling deploy, old and new code run <strong>simultaneously against one database</strong>. So you can never ship a breaking schema change with the code that needs it. Use <strong>expand–contract</strong>:</p>
-<pre><code>Release 1 (expand)   ADD the new column, nullable. Deploy code that WRITES both
-                     old and new, READS old. Both versions work.
-Release 2 (migrate)  Backfill the new column. Deploy code that READS new.
-Release 3 (contract) Stop writing the old column. DROP it.</code></pre>
-        <p>Three releases instead of one, and no downtime at any point. Renaming a column in a single deploy is the classic way to take a site down.</p>
+        <p>If both IIS hosts are not updated at the same instant, old and new code run <strong>simultaneously against one database</strong>. So a breaking schema change can never ship with the code that needs it. Use <strong>expand–contract</strong>:</p>
+<pre><code>Release 1 (expand)   ADD the new column, nullable. Code WRITES both old and new,
+                     READS old. Both versions work.
+Release 2 (migrate)  Backfill. Code READS new.
+Release 3 (contract) Stop writing old. DROP it.</code></pre>
+        <p>Three releases, zero downtime. Renaming a column in one deploy is the classic way to take a site down.</p>
       </div>
+
+      <div class="key">
+        <span class="lbl">If your real pipeline is simpler than this</span>
+        <p>Plenty of teams publish from Visual Studio or run a script on the box. If that is yours, the strong answer is: here is what we do today, here is the specific risk it carries — no build validation, so a broken merge reaches dev; no versioned artifact, so rollback means rebuilding an old commit — and here is the step I would add first. That reads as judgement. Describing a pipeline you do not have collapses on one follow-up.</p>
+      </div>
+
+      <h4>Walkthrough video</h4>
+      <a href="https://www.youtube.com/watch?v=L_bou0a8mH8" target="_blank" rel="noopener" style="display:block;max-width:34rem;text-decoration:none;border:1px solid var(--rule);border-radius:6px;overflow:hidden;background:var(--card)">
+        <svg viewBox="0 0 560 200" xmlns="http://www.w3.org/2000/svg" style="display:block;width:100%;height:auto;background:var(--code-bg)" role="img" aria-label="YouTube walkthrough: CI/CD pipeline from Azure Repos to IIS">
+          <rect width="560" height="200" fill="var(--code-bg)"/>
+          <g opacity="0.22" stroke="var(--accent)" stroke-width="1.5" fill="none">
+            <rect x="34" y="52" width="92" height="44" rx="5"/>
+            <rect x="234" y="52" width="92" height="44" rx="5"/>
+            <rect x="434" y="52" width="92" height="44" rx="5"/>
+            <path d="M126 74 H234 M326 74 H434" stroke-dasharray="5 5"/>
+          </g>
+          <g font-family="JetBrains Mono, monospace" font-size="11" fill="var(--accent)" opacity="0.6" text-anchor="middle">
+            <text x="80"  y="78">Azure Repos</text>
+            <text x="280" y="78">Pipeline</text>
+            <text x="480" y="78">IIS</text>
+          </g>
+          <circle cx="280" cy="140" r="26" fill="var(--accent)" opacity="0.95"/>
+          <path d="M272 128 L294 140 L272 152 Z" fill="var(--code-bg)"/>
+          <text x="280" y="188" font-family="Bricolage Grotesque, sans-serif" font-size="13" fill="var(--code-ink)" text-anchor="middle">Watch on YouTube</text>
+        </svg>
+        <div style="padding:.7rem .9rem;font-family:'Bricolage Grotesque',sans-serif">
+          <div style="font-weight:600;font-size:.95rem;color:var(--ink);line-height:1.3">CI/CD pipeline — Azure Repos to IIS deployment</div>
+          <div style="font-size:.8rem;color:var(--ink-faint);margin-top:.2rem">youtube.com · opens in a new tab</div>
+        </div>
+      </a>
+
       <div class="ref"><span>Reference</span>
-        <a href="https://learn.microsoft.com/en-us/devops/deliver/what-is-continuous-delivery" target="_blank" rel="noopener">What is continuous delivery — Microsoft Learn</a>
+        <a href="https://learn.microsoft.com/en-us/azure/devops/pipelines/targets/iis-web-app" target="_blank" rel="noopener">Deploy to an IIS web app — Azure Pipelines</a>
+        <a href="https://learn.microsoft.com/en-us/azure/devops/repos/git/branch-policies" target="_blank" rel="noopener">Branch policies in Azure Repos</a>
+        <a href="https://learn.microsoft.com/en-us/azure/devops/pipelines/process/approvals" target="_blank" rel="noopener">Approvals and checks on environments</a>
       </div>
     </div>
   </details>
