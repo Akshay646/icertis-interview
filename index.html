@@ -3419,60 +3419,147 @@ p99     3,200 ms    ← 1 in 100 users waits 3 seconds</code></pre>
 
 <!-- ============ AZURE ============ -->
 <section id="azure">
-  <div class="sec-head"><h2>Azure &amp; Log Analytics</h2><span class="count">2 questions</span></div>
+  <div class="sec-head"><h2>Azure &amp; Log Analytics</h2><span class="count">3 questions</span></div>
   <p class="sec-note">Reported as “Log Analytics, Azure questions”. Operational framing, not certification trivia.</p>
 
   <details class="qa">
-    <summary>What is Log Analytics, and how would you use it during an incident?</summary>
+    <summary>Azure Monitor vs Application Insights vs Log Analytics — what is the difference?</summary>
     <div class="body">
-      <p><strong>Log Analytics</strong> is the query surface over a Log Analytics <em>workspace</em> — the store that collects telemetry in <strong>Azure Monitor</strong>. You query it with <strong>KQL (Kusto Query Language)</strong>.</p>
-      <p><strong>Application Insights</strong> is the application-level telemetry product that writes into that same workspace, which is why these tables sit side by side:</p>
+      <p>People use these three names interchangeably and they are not the same thing. <strong>Azure Monitor is the overall monitoring platform. Application Insights is the application-performance service inside it. Log Analytics is the query experience over the logs.</strong></p>
+
       <table>
-        <tr><th>Table</th><th>One row per</th></tr>
-        <tr><td><code>requests</code></td><td>Incoming HTTP request — name, duration, result code, success</td></tr>
-        <tr><td><code>dependencies</code></td><td>Outgoing call — SQL, HTTP, storage — with duration and target</td></tr>
-        <tr><td><code>exceptions</code></td><td>Thrown exception with type and stack</td></tr>
-        <tr><td><code>traces</code></td><td>Your own <code>ILogger</code> entries</td></tr>
-        <tr><td><code>customMetrics</code></td><td>Metrics you emit</td></tr>
+        <tr><th></th><th>Azure Monitor</th><th>Application Insights</th><th>Log Analytics</th></tr>
+        <tr><td>What it is</td><td>The overall monitoring platform</td><td>APM — Application Performance Monitoring service</td><td>Log query and analysis experience</td></tr>
+        <tr><td>Main purpose</td><td>Monitor Azure resources and applications</td><td>Diagnose errors, latency and dependencies</td><td>Search and analyse logs with KQL</td></tr>
+        <tr><td>Typical data</td><td>Metrics, logs, traces, events</td><td>Requests, exceptions, dependencies, custom telemetry</td><td>Log records stored in Azure Monitor Logs</td></tr>
+        <tr><td>Question it answers</td><td>“Is my server running out of CPU?”</td><td>“Why is my API taking 5 seconds?”</td><td>“Which requests returned 500 yesterday?”</td></tr>
+        <tr><td>When to use</td><td>Monitoring and alerting across the environment</td><td>Investigating application behaviour</td><td>Detailed queries over collected logs</td></tr>
       </table>
 
-      <h4>The three queries to know cold</h4>
-<pre><code>// 1. WHEN did it break? Failure rate by endpoint, last hour
-requests
+      <div class="key">
+        <span class="lbl">Terminology precision</span>
+        <p><strong>Log Analytics</strong> is the query <em>experience</em>. A <strong>Log Analytics workspace</strong> is the <em>resource that stores the logs</em>. Related, not the same thing — and saying “I'll check Log Analytics” when you mean the workspace is a small tell.</p>
+      </div>
+
+      <h4>Three scenarios, three tools — a .NET API on IIS talking to SQL Server</h4>
+
+      <p><strong>Scenario A — the API is responding slowly → Application Insights.</strong></p>
+      <ul>
+        <li>Which endpoint is slow?</li>
+        <li>How long is the SQL query taking?</li>
+        <li>Is an external HTTP dependency the delay?</li>
+        <li>What exceptions fired during that request?</li>
+      </ul>
+      <p>App Insights correlates the request with its dependency calls and exceptions, so you see where the time went rather than guessing.</p>
+
+      <p><strong>Scenario B — the server is running out of resources → Azure Monitor.</strong></p>
+      <ul>
+        <li>CPU and memory usage</li>
+        <li>Server or VM availability</li>
+        <li>Resource-level metrics</li>
+        <li>Alerts when a threshold is crossed, routed through action groups</li>
+      </ul>
+
+      <p><strong>Scenario C — errors across several APIs → Log Analytics.</strong></p>
+<pre><code>AppRequests
+| where TimeGenerated &gt; ago(24h)
+| where Success == false
+| project TimeGenerated, Name, ResultCode, DurationMs
+| order by TimeGenerated desc</code></pre>
+      <p>One workspace can hold telemetry from several applications and Azure resources, so you query across them in one place.</p>
+
+      <div class="flag">
+        <span class="lbl">The schema gotcha that wastes an hour</span>
+        <p>There are <strong>two table naming schemes</strong>, and mixing them silently returns nothing:</p>
+<pre><code>Classic (App Insights resource)    Workspace-based (Log Analytics)
+  requests                           AppRequests
+  dependencies                       AppDependencies
+  exceptions                         AppExceptions
+  traces                             AppTraces
+  customMetrics                      AppMetrics</code></pre>
+        <p>Query from the Application Insights blade and you get the lowercase names. Query the Log Analytics workspace directly and you get the <code>App*</code> names. Same data, different surface. If a query returns zero rows and you are sure the data exists, this is usually why.</p>
+      </div>
+
+      <h4>How they fit together</h4>
+<pre><code>.NET API running on IIS
+          │
+          ▼
+   telemetry collection (SDK / agent)
+          │
+          ▼
+     AZURE MONITOR  ── the platform
+          │
+          ├── Application Insights
+          │     requests, exceptions, dependencies
+          │
+          ├── Log Analytics workspace
+          │     stores the logs; queried with KQL
+          │
+          └── Metrics &amp; Alerts
+                resource health, thresholds, notifications</code></pre>
+      <p>Application Insights is <em>part of</em> Azure Monitor, and its telemetry can be stored in a Log Analytics workspace. Azure Monitor also collects from sources that have nothing to do with your application.</p>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/azure/azure-monitor/overview" target="_blank" rel="noopener">Azure Monitor overview — Microsoft Learn</a>
+        <a href="https://learn.microsoft.com/en-us/azure/azure-monitor/app/app-insights-overview" target="_blank" rel="noopener">Application Insights overview</a>
+        <a href="https://learn.microsoft.com/en-us/azure/azure-monitor/logs/log-analytics-overview" target="_blank" rel="noopener">Log Analytics overview</a>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Which KQL queries would you run during an incident?</summary>
+    <div class="body">
+      <p><strong>KQL = Kusto Query Language.</strong> Reads top to bottom, each <code>|</code> piping into the next step. These three answer the three questions an incident actually poses, in order.</p>
+
+      <h4>1. WHEN did it break — failure rate by endpoint</h4>
+<pre><code>requests
 | where timestamp &gt; ago(1h)
-| summarize total = count(), failed = countif(success == false) by name
+| summarize total = count(),
+            failed = countif(success == false)
+          by name
 | extend failureRate = round(100.0 * failed / total, 2)
-| order by failureRate desc
+| order by failureRate desc</code></pre>
+<pre><code>name                        total  failed  failureRate
+GET /api/projects/{id}       4120     890        21.6
+POST /api/elements           1890      12         0.6
+GET /api/health              3600       0         0</code></pre>
+      <p>One endpoint, 21% failing, everything else healthy — that is a code path, not infrastructure.</p>
 
-// name                        total  failed  failureRate
-// GET /api/projects/{id}       4120     890        21.6
-// GET /api/health              3600       0         0</code></pre>
-
-<pre><code>// 2. WHAT broke? Exceptions over time
-exceptions
+      <h4>2. WHAT broke — exceptions over time</h4>
+<pre><code>exceptions
 | where timestamp &gt; ago(6h)
 | summarize count() by type, bin(timestamp, 5m)
 | render timechart</code></pre>
+      <p><code>bin(timestamp, 5m)</code> buckets into five-minute intervals, so the chart shows the exact moment a new exception type appeared. Line that timestamp up against your deployment log.</p>
 
-<pre><code>// 3. Is it us or them? Slowest dependencies
-dependencies
+      <h4>3. Is it us or them — slowest dependencies</h4>
+<pre><code>dependencies
 | where timestamp &gt; ago(1h)
 | summarize p95 = percentile(duration, 95), calls = count() by target, type
-| order by p95 desc
+| order by p95 desc</code></pre>
+<pre><code>target              type   p95      calls
+sql-prod/CivitDb    SQL    4210      8800     ← the database is the problem
+vendor-api.com      HTTP    180       420
+blob.core.windows   Azure    95      1200</code></pre>
+      <p>p95, not average — the average hides the tail that users actually feel.</p>
 
-// target              type   p95      calls
-// sql-prod/CivitDb    SQL    4210      8800     ← the database
-// vendor-api.com      HTTP    180       420</code></pre>
-
-      <h4>Following one request end to end</h4>
+      <h4>4. Follow ONE failing request end to end</h4>
 <pre><code>union requests, dependencies, exceptions, traces
 | where operation_Id == "8f2c1a9b4e..."
 | project timestamp, itemType, name, duration, resultCode
 | order by timestamp asc</code></pre>
-      <p><code>operation_Id</code> is the correlation ID — this is why you set one.</p>
+<pre><code>timestamp         itemType      name                      duration  resultCode
+09:14:07.412      request       GET /api/projects/42         4302     500
+09:14:07.418      dependency    SQL: SELECT Elements         4250
+09:14:11.669      exception     SqlException: Timeout</code></pre>
+      <p>The whole story in three rows: the request took 4.3 seconds, nearly all of it one SQL call, which then timed out. <code>operation_Id</code> is the correlation ID — this is precisely why you set one.</p>
+
+      <div class="key">
+        <span class="lbl">The workflow</span>
+        <p>Query 1 tells you <em>when and where</em>. Query 2 tells you <em>what</em>. Query 3 tells you <em>whose fault</em>. Query 4 gives you the single example you take to the debugger. Running them in that order is the answer to “walk me through how you'd investigate”.</p>
+      </div>
       <div class="ref"><span>Reference</span>
-        <a href="https://learn.microsoft.com/en-us/azure/azure-monitor/logs/log-analytics-overview" target="_blank" rel="noopener">Log Analytics overview — Microsoft Learn</a>
-        <a href="https://learn.microsoft.com/en-us/kusto/query/" target="_blank" rel="noopener">Kusto Query Language reference</a>
+        <a href="https://learn.microsoft.com/en-us/kusto/query/" target="_blank" rel="noopener">Kusto Query Language reference — Microsoft Learn</a>
       </div>
     </div>
   </details>
