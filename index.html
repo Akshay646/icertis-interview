@@ -192,6 +192,19 @@ th{background:var(--accent-soft);font-family:"Bricolage Grotesque",sans-serif;fo
 .bar.sell{background:var(--flag)}
 .bar span{position:absolute;top:-1.1rem;left:50%;transform:translateX(-50%);font-family:"JetBrains Mono",monospace;font-size:.62rem;color:var(--ink-faint)}
 
+/* ---------- token flow figure ---------- */
+.jb{fill:var(--card);stroke:var(--rule);stroke-width:1.3}
+.jhl{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+.ja{font-family:"Bricolage Grotesque",sans-serif;font-size:13px;font-weight:600;fill:var(--ink)}
+.jm{font-family:"JetBrains Mono",monospace;font-size:11.5px;fill:var(--ink)}
+.jg{font-family:"Bricolage Grotesque",sans-serif;font-size:11.5px;fill:var(--ink-soft)}
+.jl{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.08em;font-weight:600}
+.jh{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.06em;fill:var(--accent)}
+.jd{fill:var(--ink-faint)}
+.jar{fill:none;stroke:var(--accent);stroke-width:1.4}
+.jok{fill:var(--accent)}
+.jokt{font-family:"Bricolage Grotesque",sans-serif;font-size:12px;font-weight:600;fill:var(--card);text-anchor:middle}
+
 /* ---------- svg figures ---------- */
 .fig{margin:1.1rem 0;border:1px solid var(--rule);border-radius:8px;background:var(--card);padding:.7rem .6rem;overflow-x:auto}
 .fig svg{display:block;width:100%;min-width:40rem;height:auto}
@@ -4621,65 +4634,82 @@ score &lt; 0.75   reject</code></pre>
 
       <h4>How a consumer authenticates — service to service</h4>
 <div class="fig">
-<svg viewBox="0 0 960 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Service-to-service token flow between CivitInfra, Civit Core IDP and Civit Core BIM">
-  <defs>
-    <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M0 0 L10 5 L0 10 z" fill="var(--accent)"/>
-    </marker>
-  </defs>
+<svg viewBox="0 0 880 1215" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="How a service token is issued, passed to Civit Core BIM, and verified against the IDP's public key">
+<defs><marker id="ahT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--accent)"/></marker></defs>
 
-  <!-- actors -->
-  <g class="fig-box">
-    <rect x="20"  y="18" width="200" height="44" rx="7"/>
-    <rect x="380" y="18" width="200" height="44" rx="7"/>
-    <rect x="740" y="18" width="200" height="44" rx="7"/>
-  </g>
-  <text x="120" y="46" class="fig-t">CivitInfra</text>
-  <text x="480" y="46" class="fig-t">Civit Core IDP</text>
-  <text x="840" y="46" class="fig-t">Civit Core BIM</text>
+<rect x="40" y="16" width="800" height="62" rx="7" class="jb"/>
+<text x="56" y="38" class="ja">CivitInfra  →  Civit Core IDP</text>
+<text x="56" y="62" class="jm">POST /connect/token   grant_type=client_credentials  client_id=svc-civitinfra-prod  secret=•••</text>
+<path class="jar" d="M440 78 V102" marker-end="url(#ahT)"/>
 
-  <!-- lifelines -->
-  <g class="fig-life">
-    <path d="M120 62 V412"/><path d="M480 62 V412"/><path d="M840 62 V412"/>
-  </g>
+<rect x="40" y="102" width="800" height="92" rx="7" class="jb"/>
+<text x="56" y="124" class="ja">Civit Core IDP  →  CivitInfra     signed token</text>
+<text x="56" y="152" class="jm"><tspan fill="#B4553F">eyJhbGciOiJSUzI1NiIsImtpZCI6ImExYjJjMyJ9</tspan><tspan class="jd">.</tspan><tspan fill="#2E6E9E">eyJpc3MiOiJodHRwczovL2lkcC5jaXZpdGNvcmUi</tspan></text>
+<text x="56" y="170" class="jm"><tspan fill="#2E6E9E">LCJhdWQiOiJjaXZpdGJpbSIsImNsaWVudF9pZCI6…</tspan><tspan class="jd">.</tspan><tspan fill="#C08A2E">SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV…</tspan></text>
+<text x="56" y="187" class="jg"><tspan fill="#B4553F">header</tspan>  ·  <tspan fill="#2E6E9E">payload</tspan>  ·  <tspan fill="#C08A2E">signature</tspan>   — base64, not encrypted. anyone can read it.</text>
+<path class="jar" d="M440 194 V218" marker-end="url(#ahT)"/>
 
-  <!-- 1 -->
-  <circle cx="120" cy="100" r="11" class="fig-num"/><text x="120" y="104" class="fig-numt">1</text>
-  <path class="fig-line" d="M131 100 H469" marker-end="url(#ah2)"/>
-  <text x="300" y="92"  class="fig-mono">POST /connect/token</text>
-  <text x="300" y="118" class="fig-s">grant_type=client_credentials · client_id + secret</text>
+<rect x="40" y="218" width="800" height="60" rx="7" class="jb"/>
+<text x="56" y="240" class="ja">CivitInfra  →  Civit Core BIM</text>
+<text x="56" y="264" class="jm">Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImExYjJjMyJ9.eyJpc3MiOi…</text>
+<path class="jar" d="M440 278 V306" marker-end="url(#ahT)"/>
 
-  <!-- 2 -->
-  <circle cx="480" cy="156" r="11" class="fig-num"/><text x="480" y="160" class="fig-numt">2</text>
-  <path class="fig-line" d="M469 156 H131" marker-end="url(#ah2)"/>
-  <text x="300" y="148" class="fig-mono">signed JWT</text>
-  <text x="300" y="174" class="fig-s">iss=civitcore-idp · aud=civitbim · client_id · exp</text>
+<text x="40" y="326" class="jh">Civit Core BIM splits the token at the dots</text>
+<rect x="40"  y="338" width="256" height="104" rx="7" class="jb" stroke="#B4553F"/>
+<text x="56" y="360" class="jl" fill="#B4553F">HEADER   decoded</text>
+<text x="56" y="384" class="jm">{ "alg": "RS256",</text>
+<text x="56" y="402" class="jm">  "kid": "a1b2c3" }</text>
+<text x="56" y="428" class="jg">which algorithm, which key</text>
 
-  <!-- 3 -->
-  <circle cx="120" cy="212" r="11" class="fig-num"/><text x="120" y="216" class="fig-numt">3</text>
-  <path class="fig-line" d="M131 212 H829" marker-end="url(#ah2)"/>
-  <text x="480" y="204" class="fig-mono">GET /api/projects/{id}/models</text>
-  <text x="480" y="230" class="fig-s">Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6…</text>
+<rect x="312" y="338" width="256" height="104" rx="7" class="jb" stroke="#2E6E9E"/>
+<text x="328" y="360" class="jl" fill="#2E6E9E">PAYLOAD   decoded</text>
+<text x="328" y="384" class="jm">{ "iss": "idp.civitcore",</text>
+<text x="328" y="402" class="jm">  "aud": "civitbim", "exp": … ,</text>
+<text x="328" y="420" class="jm">  "client_id": "svc-civitinfra" }</text>
 
-  <!-- 4 self -->
-  <circle cx="840" cy="272" r="11" class="fig-num"/><text x="840" y="276" class="fig-numt">4</text>
-  <path class="fig-line" d="M851 266 H890 V292 H851" marker-end="url(#ah2)"/>
-  <rect x="596" y="252" width="232" height="56" rx="6" class="fig-inner fig-hl"/>
-  <text x="712" y="273" class="fig-t">validate the token</text>
-  <text x="712" y="291" class="fig-s">signature · iss · aud · exp — no database</text>
+<rect x="584" y="338" width="256" height="104" rx="7" class="jb" stroke="#C08A2E"/>
+<text x="600" y="360" class="jl" fill="#C08A2E">SIGNATURE</text>
+<text x="600" y="384" class="jm">SflKxwRJSMeKKF2QT4…</text>
+<text x="600" y="414" class="jg">produced by the IDP's</text>
+<text x="600" y="430" class="jg">private key</text>
 
-  <!-- 5 self -->
-  <circle cx="840" cy="340" r="11" class="fig-num"/><text x="840" y="344" class="fig-numt">5</text>
-  <path class="fig-line" d="M851 334 H890 V360 H851" marker-end="url(#ah2)"/>
-  <rect x="596" y="320" width="232" height="56" rx="6" class="fig-inner"/>
-  <text x="712" y="341" class="fig-t">resolve the consumer</text>
-  <text x="712" y="359" class="fig-mono">client_id → consumer_key</text>
+<path class="jar" d="M168 442 V470" marker-end="url(#ahT)"/>
 
-  <!-- 6 -->
-  <circle cx="840" cy="400" r="11" class="fig-num"/><text x="840" y="404" class="fig-numt">6</text>
-  <text x="700" y="404" class="fig-s" text-anchor="end">every query filtered by consumer_key · adapter calls the provider</text>
+<rect x="40" y="484" width="800" height="110" rx="7" class="jb"/>
+<text x="56" y="506" class="ja">Civit Core BIM  →  IDP     <tspan class="jm">GET /.well-known/jwks</tspan>   <tspan class="jg">— cached at startup, refreshed on an unknown kid</tspan></text>
+<text x="56" y="534" class="jm">{ "keys": [ { "kid": "<tspan fill="#B4553F">a1b2c3</tspan>", "kty": "RSA", "alg": "RS256",</text>
+<text x="56" y="552" class="jm">             "n": "0vx7agoebGcQSuuPiLJXZptN…", "e": "AQAB" } ] }</text>
+<text x="56" y="580" class="jg">the kid from the header picks the key. this is the PUBLIC key — it can check a signature, never create one.</text>
+<path class="jar" d="M440 594 V622" marker-end="url(#ahT)"/>
+
+<rect x="40" y="622" width="800" height="150" rx="7" class="jb jhl"/>
+<text x="56" y="644" class="ja">Civit Core BIM     verify the signature</text>
+<text x="56" y="676" class="jm">computed  =  SHA256( <tspan fill="#B4553F">header</tspan> <tspan class="jd">.</tspan> <tspan fill="#2E6E9E">payload</tspan> )</text>
+<text x="56" y="700" class="jm">RSA_verify( <tspan fill="#C08A2E">signature</tspan> ,  computed ,  publicKey<tspan class="jd">[</tspan>a1b2c3<tspan class="jd">]</tspan> )</text>
+<rect x="56" y="714" width="120" height="30" rx="15" class="jok"/>
+<text x="116" y="734" class="jokt">match ✓</text>
+<text x="56" y="762" class="jg">change one byte of the payload and this fails. only the private key can produce a matching signature.</text>
+<path class="jar" d="M440 772 V800" marker-end="url(#ahT)"/>
+
+<rect x="40" y="800" width="800" height="86" rx="7" class="jb"/>
+<text x="56" y="822" class="ja">Civit Core BIM     now the payload can be trusted — check three claims</text>
+<text x="56" y="850" class="jm">iss = idp.civitcore  ✓      aud = civitbim  ✓      exp  in the future  ✓</text>
+<text x="56" y="874" class="jg">aud is the one people skip — without it, a token issued for PMC would open this API.</text>
+<path class="jar" d="M440 886 V914" marker-end="url(#ahT)"/>
+
+<rect x="40" y="914" width="800" height="86" rx="7" class="jb"/>
+<text x="56" y="936" class="ja">Civit Core BIM  →  database     first query of the whole request</text>
+<text x="56" y="964" class="jm">SELECT consumer_key FROM consumer_registration WHERE idp_client_id = '<tspan fill="#2E6E9E">svc-civitinfra-prod</tspan>'</text>
+<text x="56" y="988" class="jg">→ consumer_key = civitinfra</text>
+<path class="jar" d="M440 1000 V1028" marker-end="url(#ahT)"/>
+
+<rect x="40" y="1028" width="800" height="86" rx="7" class="jb"/>
+<text x="56" y="1050" class="ja">Civit Core BIM     request proceeds, scoped to that consumer</text>
+<text x="56" y="1078" class="jm">every query filtered by consumer_key   ·   Autodesk credentials loaded for that consumer</text>
+<text x="56" y="1102" class="jg">the adapter calls the provider and maps the response back into our contract.</text>
 </svg>
 </div>
+
 
       <div class="key">
         <span class="lbl">The design point to say out loud</span>
@@ -4708,7 +4738,135 @@ score &lt; 0.75   reject</code></pre>
         <p>If your product serves a selected set of enterprise clients rather than millions of users, say so and <em>pivot the scale story</em> to where it is genuinely impressive: data volume per request, integration complexity, correctness requirements, multi-tenancy.</p>
 <pre><code>✗ "It handles massive scale"        → one follow-up about your infrastructure and it collapses
 ✓ "Twelve enterprise tenants, but a single federated model is 300,000+
-   elements — the hard part is per-request data volume, not request rate"</code></pre>
+   elements —       <h4>The whole flow, end to end</h4>
+      <p>From registering a consumer to one authenticated API call. Four phases; the token verification in Phase 3 is the part interviewers push on, so it is broken out in full.</p>
+
+      <h4>Phase 0 — Onboarding a consumer (one time, no deployment)</h4>
+      <table>
+        <tr><th>#</th><th>Who</th><th>Action</th></tr>
+        <tr><td>0.1</td><td>Platform team</td><td>Register CivitInfra as a client in Civit Core IDP → issues <code>client_id</code> + <code>client_secret</code>, with <code>audience = civitbim</code></td></tr>
+        <tr><td>0.2</td><td>CivitBIM</td><td><code>INSERT</code> into <code>consumer_registration</code> — maps that <code>idp_client_id</code> to a <code>consumer_key</code></td></tr>
+        <tr><td>0.3</td><td>CivitBIM</td><td>Create the Autodesk APS application; callback URL points at <strong>CivitBIM</strong>, not the consumer</td></tr>
+        <tr><td>0.4</td><td>CivitBIM</td><td><code>INSERT</code> into <code>consumer_provider</code> — provider credentials, encrypted, with <code>key_version</code></td></tr>
+        <tr><td>0.5</td><td>CivitInfra</td><td>Store its <code>client_secret</code> in its own secret store — never in the repo or <code>appsettings.json</code></td></tr>
+      </table>
+      <p>Two rows and a client registration. No code changes, no redeploy — that is the point of a registry.</p>
+
+      <h4>Phase 1 — CivitBIM starts up (once per process)</h4>
+<pre><code>builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(o =&gt;
+    {
+        o.Authority = "https://idp.civitcore";      // 1.1
+        o.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            ValidateIssuer   = true,  ValidIssuer   = "https://idp.civitcore",
+            ValidateAudience = true,  ValidAudience = "civitbim",
+            ValidateLifetime = true,  ClockSkew     = TimeSpan.FromSeconds(30),
+            ValidAlgorithms  = new[] { SecurityAlgorithms.RsaSha256 }   // allow-list
+        };
+    });</code></pre>
+      <ol>
+        <li><strong>1.1</strong> — <code>Authority</code> is read from config.</li>
+        <li><strong>1.2</strong> — The handler fetches <code>https://idp.civitcore/.well-known/openid-configuration</code> and reads <code>issuer</code>, <code>jwks_uri</code> and supported algorithms from it.</li>
+        <li><strong>1.3</strong> — It fetches <code>jwks_uri</code> and caches the public keys in memory, indexed by <code>kid</code>.</li>
+        <li><strong>1.4</strong> — Configuration is refreshed automatically (24 hours by default), and refreshed early if a token arrives with an unknown <code>kid</code> — which is how key rotation works without a deployment.</li>
+      </ol>
+      <p>No secret is held. CivitBIM only ever has public keys.</p>
+
+      <h4>Phase 2 — CivitInfra obtains a service token</h4>
+<pre><code>POST https://idp.civitcore/connect/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials
+&amp;client_id=svc-civitinfra-prod
+&amp;client_secret=•••
+&amp;scope=civitbim.api</code></pre>
+<pre><code>200 OK
+{
+  "access_token": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImExYjJjMyJ9.eyJpc3MiOi…",
+  "token_type":   "Bearer",
+  "expires_in":   3600
+}</code></pre>
+      <p><strong>2.1</strong> Request. <strong>2.2</strong> Response. <strong>2.3</strong> CivitInfra caches the token and reuses it until shortly before <code>exp</code> — not one token fetch per API call, or you have added a network hop to every request.</p>
+
+      <h4>Phase 3 — First call: how CivitBIM verifies the token</h4>
+      <p>This is what the JWT bearer handler does on every request, in order. Nothing here is custom code.</p>
+      <table>
+        <tr><th>#</th><th>Step</th><th>Fails if</th></tr>
+        <tr><td>3.1</td><td>Read the <code>Authorization</code> header, confirm the <code>Bearer</code> scheme</td><td>missing or wrong scheme</td></tr>
+        <tr><td>3.2</td><td>Split the token at the dots; base64url-decode the header</td><td>not three parts, or not valid base64</td></tr>
+        <tr><td>3.3</td><td>Check <code>alg</code> against the allow-list</td><td><code>alg: none</code>, or <code>HS256</code> when RS256 was expected</td></tr>
+        <tr><td>3.4</td><td>Look up <code>kid</code> in the cached JWKS; on a miss, refresh once and retry</td><td><code>kid</code> is not a key the IDP published</td></tr>
+        <tr><td>3.5</td><td><strong>Verify the signature</strong> — RSA-SHA256 over <code>header.payload</code> with that public key</td><td>any byte of the token was altered</td></tr>
+        <tr><td>3.6</td><td>Validate <code>iss</code></td><td>minted by a different issuer</td></tr>
+        <tr><td>3.7</td><td>Validate <code>aud</code></td><td>minted for another service — a valid PMC token must not work here</td></tr>
+        <tr><td>3.8</td><td>Validate <code>nbf</code> / <code>exp</code> within <code>ClockSkew</code></td><td>expired or not yet valid</td></tr>
+        <tr><td>3.9</td><td>Build a <code>ClaimsPrincipal</code> and set <code>HttpContext.User</code></td><td>—</td></tr>
+      </table>
+      <p>Any failure returns <code>401</code> with a <code>WWW-Authenticate</code> header naming the reason. <strong>Steps 3.1–3.9 touch no database</strong> — signature maths plus three string comparisons. That is what makes per-request validation affordable.</p>
+      <div class="flag">
+        <span class="lbl">Order matters, and it is the reverse of intuition</span>
+        <p>The signature is verified <em>before</em> any claim is read. Until 3.5 passes, <code>client_id</code> is just a string an attacker typed. Answering this question in the order "first we check the client id" is the common mistake.</p>
+      </div>
+
+      <h4>Phase 3b — Resolving the consumer (your middleware)</h4>
+<pre><code>// runs after UseAuthentication(), before UseAuthorization()
+var clientId = context.User.FindFirstValue("client_id");          // 3.10
+
+var reg = await db.ConsumerRegistrations                           // 3.11
+    .AsNoTracking()
+    .FirstOrDefaultAsync(c =&gt; c.IdpClientId == clientId &amp;&amp; c.IsActive, ct);
+
+if (reg is null)                                                   // 3.12
+{
+    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+    return;
+}
+
+context.Items["consumer_key"] = reg.ConsumerKey;                   // 3.13
+await next(context);</code></pre>
+      <p><strong>3.11 is the first database hit of the entire request.</strong> A token that is cryptographically valid but belongs to a consumer you never registered — or one since deactivated — gets <code>403</code>, not <code>401</code>: authenticated, but not authorised here.</p>
+
+      <h4>Phase 4 — Connecting the user's ACC account (first time only)</h4>
+      <table>
+        <tr><th>#</th><th>Direction</th><th>What happens</th></tr>
+        <tr><td>4.1</td><td>CivitInfra → CivitBIM</td><td><code>POST /api/connections/start</code> with <code>Authorization: Bearer &lt;jwt&gt;</code></td></tr>
+        <tr><td>4.2</td><td>CivitBIM</td><td>Phases 3 and 3b run → <code>consumer_key = civitinfra</code></td></tr>
+        <tr><td>4.3</td><td>CivitBIM → DB</td><td><code>SELECT</code> from <code>consumer_provider</code>; decrypt the client secret with the key named by <code>key_version</code></td></tr>
+        <tr><td>4.4</td><td>CivitBIM</td><td>Generate an opaque <code>state</code>, store it against the consumer with a short expiry</td></tr>
+        <tr><td>4.5</td><td>CivitBIM → CivitInfra</td><td>Return the Autodesk authorize URL</td></tr>
+        <tr><td>4.6</td><td>Browser → Autodesk</td><td>User signs in with <em>their own</em> ACC credentials and consents</td></tr>
+        <tr><td>4.7</td><td>Autodesk → CivitBIM</td><td><code>GET /api/connections/callback?code=…&amp;state=…</code></td></tr>
+        <tr><td>4.8</td><td>CivitBIM</td><td>Validate <code>state</code>: exists, unused, not expired — then delete it. This is the CSRF guard</td></tr>
+        <tr><td>4.9</td><td>CivitBIM → Autodesk</td><td><code>POST /authentication/v2/token</code> with <code>grant_type=authorization_code</code>, the code, and the client credentials — server to server</td></tr>
+        <tr><td>4.10</td><td>Autodesk → CivitBIM</td><td><code>access_token</code>, <code>refresh_token</code>, <code>expires_in</code></td></tr>
+        <tr><td>4.11</td><td>CivitBIM → DB</td><td>Encrypt both tokens, <code>INSERT</code> into <code>civitbim_auth_store</code> with a new <code>session_id</code></td></tr>
+        <tr><td>4.12</td><td>CivitBIM → CivitInfra</td><td>Return <code>{ "sessionId": "sess_9f2c4a" }</code> — an opaque handle, nothing else</td></tr>
+      </table>
+      <p>The authorization code is single-use and short-lived, and it is exchanged server-side. No provider token ever reaches a browser.</p>
+
+      <h4>Phase 5 — A normal API call</h4>
+<pre><code>GET /api/projects/88/models
+Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6ImExYjJjMyJ9…
+X-Session-Id: sess_9f2c4a</code></pre>
+      <table>
+        <tr><th>#</th><th>Step</th></tr>
+        <tr><td>5.1</td><td>Phase 3 runs — signature, <code>iss</code>, <code>aud</code>, <code>exp</code></td></tr>
+        <tr><td>5.2</td><td>Phase 3b runs — <code>client_id</code> → <code>consumer_key = civitinfra</code></td></tr>
+        <tr><td>5.3</td><td><code>SELECT</code> the session from <code>civitbim_auth_store</code> by <code>session_id</code></td></tr>
+        <tr><td>5.4</td><td><strong>Ownership check</strong> — <code>session.consumer_key == consumer_key</code> from the token, else <code>403</code></td></tr>
+        <tr><td>5.5</td><td>If the provider token is near expiry, refresh it under a <strong>distributed lock</strong> keyed on the session</td></tr>
+        <tr><td>5.6</td><td>Decrypt the access token; the APS adapter calls Autodesk with it</td></tr>
+        <tr><td>5.7</td><td>Map the provider response into the internal contract and return it</td></tr>
+      </table>
+      <div class="flag">
+        <span class="lbl">5.4 and 5.5 are the two that matter</span>
+        <p><strong>5.4</strong> — without it, a guessed or leaked session id lets one consumer act on another's ACC connection. Tenant isolation lives on this line.</p>
+        <p><strong>5.5</strong> — without the lock, twenty concurrent requests all refresh at once. Most providers invalidate a refresh token once used, so nineteen fail and the user is disconnected.</p>
+      </div>
+
+the hard part is per-request data volume, not request rate"</code></pre>
       </div>
     </div>
   </details>
@@ -5133,6 +5291,9 @@ protected override void OnModelCreating(ModelBuilder b)
   vA.addEventListener("input", cosSim);
   vB.addEventListener("input", cosSim);
   cosSim();
+
+
+
 })();
 </script>
 </body>
