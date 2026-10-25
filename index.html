@@ -2773,25 +2773,82 @@ await db.Orders
   <details class="qa">
     <summary>How do you handle large result sets?</summary>
     <div class="body">
-      <p>An endpoint returns 100,000 orders for a page showing 20. First question: does it need to?</p>
-<pre><code>var page = await db.Orders
+      <p>First, ask whether the endpoint really needs to return all 100,000 orders when the UI displays only 20.</p>
+<pre><code>List&lt;OrderSummary&gt; page = await db.Orders
     .AsNoTracking()
-    .OrderBy(o =&gt; o.Id)                   // stable ordering — without it paging is undefined
-    .Skip(40).Take(20)
-    .Select(o =&gt; new { o.Id, o.Total })
+    .OrderBy(o =&gt; o.Id)
+    .Skip(40)
+    .Take(20)
+    .Select(o =&gt; new OrderSummary
+    {
+        Id = o.Id,
+        Total = o.Total
+    })
     .ToListAsync(ct);</code></pre>
-      <h4>Offset vs keyset paging</h4>
-<pre><code>// OFFSET: SQL Server still reads and discards the skipped rows
-.Skip(100000).Take(20)        // reads 100,020 rows to return 20
+      <ul>
+        <li><strong>Pagination</strong> — <code>Skip(40).Take(20)</code> returns 20 orders for page 3, assuming 20 orders per page.</li>
+        <li><strong>Projection</strong> — <code>Select()</code> fetches only the required columns.</li>
+        <li><strong>No tracking</strong> — <code>AsNoTracking()</code> avoids change-tracking overhead for read-only queries.</li>
+        <li><strong>Stable ordering</strong> — <code>OrderBy(o =&gt; o.Id)</code> ensures a consistent order because <code>Id</code> is unique.</li>
+      </ul>
 
-// KEYSET: index seek straight to the position
-.Where(o =&gt; o.Id &gt; lastSeenId).OrderBy(o =&gt; o.Id).Take(20)   // reads 20</code></pre>
-      <p>Offset is fine for page 3 and terrible for page 5,000. Keyset needs a stable unique sort key and gives up random page access — you get "next", not "jump to 47".</p>
-      <p>For a background job that genuinely must touch every row, stream instead of buffering:</p>
-<pre><code>await foreach (var order in db.Orders.AsNoTracking().AsAsyncEnumerable().WithCancellation(ct))
+      <h4>Offset vs keyset pagination</h4>
+      <p>Offset pagination uses <code>Skip()</code> and <code>Take()</code>:</p>
+<pre><code>.Skip(100000).Take(20)</code></pre>
+      <p>The database generally has to process and skip many preceding rows before returning the next 20. Large offsets can become expensive.</p>
+      <p>Keyset pagination remembers the last ID returned on the previous page:</p>
+<pre><code>.Where(o =&gt; o.Id &gt; lastSeenId)
+    .OrderBy(o =&gt; o.Id)
+    .Take(20)</code></pre>
+      <p>With a suitable index on <code>Id</code>, the database can seek to the next position instead of skipping all preceding rows.</p>
+
+      <h4>How do you remember the last-seen ID?</h4>
+      <ol>
+        <li>The first request sends <code>lastSeenId = null</code>.</li>
+        <li>The API returns IDs 1–20 and <code>nextCursor = 20</code>.</li>
+        <li>The client sends <code>lastSeenId = 20</code> in the next request.</li>
+        <li>The API returns the next 20 IDs and sends back the next cursor.</li>
+      </ol>
+      <p>To check whether another page exists, fetch 21 rows for a page size of 20:</p>
+<pre><code>List&lt;OrderSummary&gt; items = await query
+    .OrderBy(o =&gt; o.Id)
+    .Take(21)
+    .Select(o =&gt; new OrderSummary
+    {
+        Id = o.Id,
+        Total = o.Total
+    })
+    .ToListAsync(ct);
+
+bool hasMore = items.Count &gt; 20;
+
+if (hasMore)
 {
-    /* processed one at a time — the whole set never sits in memory */
+    items.RemoveAt(20); // Removes the extra item from the C# list, not the database.
+}
+
+long? nextCursor = hasMore ? items[^1].Id : null;</code></pre>
+      <p>Return <code>items</code>, <code>hasMore</code> and <code>nextCursor</code> to the client.</p>
+
+      <p><strong>When to use which:</strong></p>
+      <ul>
+        <li><strong>Offset</strong> — users need to jump directly to a particular page.</li>
+        <li><strong>Keyset</strong> — users mainly navigate to the next or previous page. It performs better for deep pagination when supported by a suitable index.</li>
+      </ul>
+
+      <h4>Processing all rows in a background job</h4>
+      <p>If a background job genuinely needs to process every order, enumerate the query incrementally instead of loading all rows into a <code>List</code> with <code>ToListAsync()</code>.</p>
+<pre><code>await foreach (Order order in db.Orders
+    .AsNoTracking()
+    .AsAsyncEnumerable()
+    .WithCancellation(ct))
+{
+    await ProcessOrderAsync(order, ct);
 }</code></pre>
+      <p>This avoids materializing the entire result into one application-side list and reduces memory usage.</p>
+      <div class="ref"><span>Reference</span>
+        <a href="https://learn.microsoft.com/en-us/ef/core/performance/efficient-querying" target="_blank" rel="noopener">Efficient querying — EF Core docs</a>
+      </div>
     </div>
   </details>
 
