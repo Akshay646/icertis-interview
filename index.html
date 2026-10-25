@@ -1909,76 +1909,138 @@ var cached = await _cache.GetAsync(key);   // cache hit → completes synchronou
   <details class="qa">
     <summary>Concurrency vs parallelism vs multithreading vs async/await</summary>
     <div class="body">
-      <p>Four terms people use interchangeably. Interviewers ask precisely because they are <em>not</em> the same thing.</p>
+      <p>These terms are related but describe different things. Interviewers ask because people use them interchangeably.</p>
 
-      <h4>Concurrency — multiple operations making progress over overlapping periods</h4>
-      <p>Not necessarily at the same instant. Your API receives 100 requests: some are waiting on the database, others are processing. The server makes progress on all of them because nothing sits blocked.</p>
-      <p>Concrete case — an endpoint needs project details and user permissions from two independent services, 300 ms each:</p>
-<pre><code>// SEQUENTIAL — the second call starts only after the first finishes
-var project     = await projectService.GetProjectAsync(projectId);      // 300 ms
-var permissions = await permissionService.GetPermissionsAsync(userId);  // 300 ms
-// total ≈ 600 ms</code></pre>
-<pre><code>// CONCURRENT — both are in flight at once
-var projectTask     = projectService.GetProjectAsync(projectId);        // started
-var permissionsTask = permissionService.GetPermissionsAsync(userId);    // started
+      <h4>1. Concurrency — multiple operations making progress over overlapping periods</h4>
+      <p>Concurrency does <strong>not</strong> mean operations execute at exactly the same instant. Their execution can overlap, even without using different CPU cores.</p>
+      <p><strong>Real example:</strong> an API needs project details and user permissions. Both come from independent services, each taking about 300 ms.</p>
+
+      <p><strong>Sequential execution</strong></p>
+<pre><code>var project     = await projectService.GetProjectAsync(projectId);
+var permissions = await permissionService.GetPermissionsAsync(userId);</code></pre>
+      <ol>
+        <li>The project request starts, and the method waits for it to finish.</li>
+        <li>Only then does the permissions request start.</li>
+        <li>Total time is approximately <strong>600 ms</strong>.</li>
+      </ol>
+      <p>While awaiting the first request the thread can return to the thread pool — so nothing is <em>blocked</em>. But the method still does not start the second request until the first one finishes. The waste is in the ordering, not in thread usage.</p>
+
+      <p><strong>Concurrent execution</strong></p>
+<pre><code>var projectTask =
+    projectService.GetProjectAsync(projectId);
+
+var permissionsTask =
+    permissionService.GetPermissionsAsync(userId);
+
+var project     = await projectTask;
+var permissions = await permissionsTask;</code></pre>
+      <ol>
+        <li>The project request starts.</li>
+        <li>The permissions request starts <em>before</em> the first <code>await</code>.</li>
+        <li>Both requests can be in progress at the same time.</li>
+        <li>The method awaits their results.</li>
+      </ol>
+      <p>Total time can be approximately <strong>300 ms</strong> rather than 600 ms, because the requests overlap.</p>
+      <div class="flag">
+        <span class="lbl">Important</span>
+        <p>Both operations must be independent. If fetching permissions requires the project result, you cannot start them this way.</p>
+      </div>
+
+      <h4>2. Parallelism — multiple pieces of work executing at the same instant</h4>
+      <p>Parallelism typically means using multiple CPU cores to execute different pieces of work simultaneously.</p>
+      <p><strong>Real example:</strong> a BIM model contains 100,000 elements and you need the volume of every one. Each calculation is independent and CPU-heavy.</p>
+<pre><code>var volumes = new double[elements.Length];
+
+Parallel.For(0, elements.Length, i =&gt;
+{
+    volumes[i] = CalculateVolume(elements[i]);
+});</code></pre>
+      <p>Instead of calculating one after another, .NET processes multiple elements at the same time across available CPU resources.</p>
+      <p>For this to be safe, each iteration must be independent and <code>CalculateVolume</code> must be safe to run concurrently.</p>
+      <ul>
+        <li><strong>Use it for</strong> CPU-intensive work — calculations, image processing, large collection transforms.</li>
+        <li><strong>Do not use it for</strong> ordinary asynchronous HTTP or database calls. Those want asynchronous I/O, not CPU parallelism.</li>
+      </ul>
+      <p>Parallel execution is not guaranteed to be faster either — for small workloads the coordination overhead can outweigh the benefit.</p>
+
+      <h4>3. Multithreading — using multiple threads to execute work</h4>
+      <p>A thread is a path of execution within a process. Multithreading means the process uses several of them.</p>
+      <p><strong>Real example:</strong> a background worker processing two orders.</p>
+<pre><code>var thread1 = new Thread(() =&gt; ProcessOrder(order101));
+var thread2 = new Thread(() =&gt; ProcessOrder(order102));
+
+thread1.Start();
+thread2.Start();</code></pre>
+      <p>Two separate threads execute the processing. The operating system <em>may</em> run them simultaneously on different cores, or schedule them at different times on a single core.</p>
+      <p>So <strong>multithreading does not automatically guarantee parallelism.</strong></p>
+      <p>In ordinary ASP.NET Core applications you do not create a <code>Thread</code> per request — the framework and thread pool manage that. The example illustrates the concept, not a recommended pattern for web requests.</p>
+
+      <h4>4. async/await — waiting without blocking a thread</h4>
+      <p>A programming model for asynchronous operations, especially I/O-bound work: HTTP calls, database queries, file operations.</p>
+<pre><code>var user = await httpClient.GetFromJsonAsync&lt;User&gt;(url);</code></pre>
+      <p>While waiting for the HTTP response the method suspends, letting the thread do other work instead of sitting blocked. When the response arrives the method resumes.</p>
+      <ul>
+        <li><code>await</code> does not automatically create a new thread.</li>
+        <li>Asynchronous I/O does not need a dedicated thread sitting idle during the wait.</li>
+        <li><code>async</code>/<code>await</code> does not make CPU-intensive calculations parallel.</li>
+      </ul>
+
+      <h4>5. What does Task.WhenAll do?</h4>
+      <p>It waits for multiple tasks to finish.</p>
+<pre><code>var projectTask =
+    projectService.GetProjectAsync(projectId);
+
+var permissionsTask =
+    permissionService.GetPermissionsAsync(userId);
 
 await Task.WhenAll(projectTask, permissionsTask);
 
+var project     = projectTask.Result;
+var permissions = permissionsTask.Result;</code></pre>
+      <p>Both requests start <strong>before</strong> <code>Task.WhenAll</code> is called. <code>Task.WhenAll</code> waits until both have completed.</p>
+      <p>The <code>.Result</code> accesses are safe <em>here</em> because <code>await Task.WhenAll</code> has already completed, so both tasks are finished. Never touch <code>.Result</code> on a task that might still be running — it blocks the calling thread.</p>
+      <p>You can also omit it entirely:</p>
+<pre><code>var projectTask =
+    projectService.GetProjectAsync(projectId);
+
+var permissionsTask =
+    permissionService.GetPermissionsAsync(userId);
+
 var project     = await projectTask;
-var permissions = await permissionsTask;
-// total ≈ 300 ms — bounded by the slower of the two</code></pre>
-      <p><strong>The condition that makes this legal:</strong> the two calls must be independent. If the second needs the first one's result, there is nothing to overlap.</p>
+var permissions = await permissionsTask;</code></pre>
+      <p>This is still concurrent — both requests started before the first <code>await</code>.</p>
+      <p><strong>So why use it?</strong> It expresses explicitly that you need all the operations to finish before proceeding. It also waits for every supplied task to finish before propagating a failure, which matters when coordinating several operations.</p>
+      <p><code>Task.WhenAll</code> does not create threads, and it does not itself make operations concurrent. <strong>Starting both operations before awaiting either one is what creates the overlap.</strong></p>
 
-      <h4>Parallelism — multiple operations executing at the same instant, on multiple cores</h4>
-      <p>This is for CPU-bound work that splits into independent pieces:</p>
-<pre><code>Parallel.ForEach(elements, element =&gt;
-{
-    ProcessElement(element);     // expensive calculation per element
-});</code></pre>
-      <p><strong>The caveat to state unprompted:</strong> this is only safe if <code>ProcessElement</code> is safe to run concurrently. If it appends to a shared <code>List&lt;T&gt;</code> or writes the same database rows, you have introduced race conditions and possibly overloaded a downstream dependency.</p>
-      <p>And it is not a free win. Before reaching for it, weigh CPU headroom, workload size, thread-pool pressure, and whether parallel execution actually measures faster. <strong>You would not use <code>Parallel.ForEach</code> to make ordinary database calls asynchronous</strong> — that is the wrong tool for I/O.</p>
-
-      <h4>Multithreading — using multiple threads within a process</h4>
-<pre><code>var thread = new Thread(() =&gt;
-{
-    Console.WriteLine("Executing on a separate thread");
-});
-
-thread.Start();
-thread.Join();</code></pre>
-      <p>Explicit thread creation. In ordinary ASP.NET Core business logic you almost never do this — the framework already manages request processing, and asynchronous I/O handles the waiting without a dedicated thread per operation.</p>
-
-      <h4>The table to have ready</h4>
+      <h4>Revision table</h4>
+      <div class="scroller">
       <table>
-        <tr><th>Concept</th><th>What it actually does</th><th>Typical example</th></tr>
-        <tr><td>Concurrency</td><td>Multiple operations make progress over overlapping periods</td><td>Handling many API requests</td></tr>
-        <tr><td>Parallelism</td><td>Multiple operations execute simultaneously on multiple cores</td><td>CPU-intensive calculation across elements</td></tr>
-        <tr><td>Multithreading</td><td>Uses multiple threads to execute work</td><td>Worker threads processing tasks</td></tr>
-        <tr><td><code>async</code>/<code>await</code></td><td>Asynchronous control flow without blocking a thread while awaiting</td><td>Awaiting an HTTP or database call</td></tr>
-        <tr><td><code>Task.WhenAll</code></td><td>Asynchronously waits for several tasks to finish</td><td>Calling two independent services</td></tr>
+        <tr><th>Concept</th><th>What it means</th><th>Real example</th></tr>
+        <tr><td><strong>Concurrency</strong></td><td>Multiple operations make progress over overlapping periods</td><td>Fetching project details and permissions concurrently</td></tr>
+        <tr><td><strong>Parallelism</strong></td><td>Multiple pieces of work execute simultaneously, typically across CPU cores</td><td>Calculating the volume of many BIM elements</td></tr>
+        <tr><td><strong>Multithreading</strong></td><td>A process uses multiple threads to execute work</td><td>Worker threads processing orders</td></tr>
+        <tr><td><strong><code>async</code>/<code>await</code></strong></td><td>Asynchronous control flow that lets a method suspend while waiting, without blocking a thread for that wait</td><td>Awaiting an HTTP response or database query</td></tr>
+        <tr><td><strong><code>Task.WhenAll</code></strong></td><td>Waits for all supplied tasks to complete</td><td>Waiting for project and permissions requests together</td></tr>
       </table>
-
-      <div class="flag">
-        <span class="lbl">The critical point interviewers listen for</span>
-        <p><strong><code>async</code>/<code>await</code> does not inherently create a thread, and <code>Task.WhenAll</code> does not inherently run tasks on separate threads.</strong></p>
-<pre><code>var response = await httpClient.GetAsync(url);</code></pre>
-        <p>While that request is on the network, no thread is held waiting for it. Nothing was spawned — a thread was <em>released</em>.</p>
-        <p>The corollary: for CPU-bound work, <code>async</code>/<code>await</code> alone makes nothing faster. There is no I/O to wait on, so there is no thread to release. That is what parallelism is for.</p>
       </div>
 
+      <h4>The easiest way to remember</h4>
+      <ul>
+        <li><strong>Concurrency</strong> — multiple operations are in progress over overlapping periods.</li>
+        <li><strong>Parallelism</strong> — multiple operations execute at the same instant.</li>
+        <li><strong>Multithreading</strong> — multiple threads are used to execute work.</li>
+        <li><strong><code>async</code>/<code>await</code></strong> — lets your code wait asynchronously without blocking a thread during the wait.</li>
+        <li><strong><code>Task.WhenAll</code></strong> — waits for multiple tasks together.</li>
+      </ul>
+      <p>These can work together, but none of them automatically implies the others.</p>
+
       <div class="key">
-        <span class="lbl">What they want to hear about threads</span>
-        <ul>
-          <li>More threads does not automatically mean faster.</li>
-          <li>Threads cost resources — roughly 1 MB of stack each, plus scheduling.</li>
-          <li>Excessive thread creation hurts performance rather than helping it.</li>
-          <li>Shared mutable state needs synchronisation.</li>
-          <li>Asynchronous I/O does not need a dedicated thread per operation.</li>
-        </ul>
+        <span class="lbl">The direct answer to give</span>
+        <p>“Concurrency is about operations overlapping in time — in our APIs that means starting two independent service calls before awaiting either, so 600 ms of sequential waiting becomes about 300 ms. Parallelism is about using multiple cores, which we use for CPU-bound work like calculating volumes across model elements. Multithreading is the mechanism of running work on several threads, and it does not by itself guarantee parallelism. <code>async</code>/<code>await</code> is none of those — it lets a thread be released during a wait rather than sitting blocked, which is why it helps I/O and does nothing for CPU-bound work.”</p>
       </div>
       <div class="ref"><span>Reference</span>
         <a href="https://learn.microsoft.com/en-us/dotnet/standard/parallel-programming/" target="_blank" rel="noopener">Parallel programming in .NET — Microsoft Learn</a>
-        <a href="https://learn.microsoft.com/en-us/dotnet/standard/asynchronous-programming-patterns/" target="_blank" rel="noopener">Asynchronous programming patterns</a>
+        <a href="https://learn.microsoft.com/en-us/dotnet/csharp/asynchronous-programming/" target="_blank" rel="noopener">Asynchronous programming with async and await</a>
       </div>
     </div>
   </details>
