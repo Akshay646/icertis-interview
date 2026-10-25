@@ -192,6 +192,24 @@ th{background:var(--accent-soft);font-family:"Bricolage Grotesque",sans-serif;fo
 .bar.sell{background:var(--flag)}
 .bar span{position:absolute;top:-1.1rem;left:50%;transform:translateX(-50%);font-family:"JetBrains Mono",monospace;font-size:.62rem;color:var(--ink-faint)}
 
+/* ---------- svg figures ---------- */
+.fig{margin:1.1rem 0;border:1px solid var(--rule);border-radius:8px;background:var(--card);padding:.7rem .6rem;overflow-x:auto}
+.fig svg{display:block;width:100%;min-width:40rem;height:auto}
+.fig-col{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.09em;fill:var(--accent);text-anchor:middle}
+.fig-sub{font-family:"Bricolage Grotesque",sans-serif;font-size:10.5px;fill:var(--ink-faint);text-anchor:middle}
+.fig-box rect{fill:var(--paper);stroke:var(--rule);stroke-width:1.4}
+.fig-panel{fill:none;stroke:var(--accent);stroke-width:1.6;stroke-dasharray:3 4;opacity:.75}
+.fig-inner{fill:var(--accent-soft);stroke:var(--rule);stroke-width:1}
+.fig-hl{stroke:var(--accent);stroke-width:1.5}
+.fig-t{font-family:"Bricolage Grotesque",sans-serif;font-size:13px;font-weight:600;fill:var(--ink);text-anchor:middle}
+.fig-s{font-family:"Bricolage Grotesque",sans-serif;font-size:10.5px;fill:var(--ink-soft);text-anchor:middle}
+.fig-mono{font-family:"JetBrains Mono",monospace;font-size:11px;fill:var(--accent);text-anchor:middle}
+.fig-dim{fill:var(--ink-faint)}
+.fig-line{fill:none;stroke:var(--accent);stroke-width:1.5}
+.fig-life path{stroke:var(--rule);stroke-width:1.2;stroke-dasharray:4 5;fill:none}
+.fig-num{fill:var(--accent)}
+.fig-numt{font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:600;fill:var(--card);text-anchor:middle}
+
 /* ---------- video card ---------- */
 .vid-card{display:block;max-width:34rem;margin:.9rem 0;border:1px solid var(--rule);border-radius:12px;overflow:hidden;background:var(--card);text-decoration:none;transition:transform .3s ease,border-color .3s ease}
 .vid-card:hover{transform:translateY(-3px);border-color:var(--accent)}
@@ -4510,17 +4528,170 @@ score &lt; 0.75   reject</code></pre>
         <li><strong>Scale and shape</strong> — tenants, data volume, request pattern.</li>
       </ol>
 
-      <h4>What the architecture beat sounds like</h4>
-<pre><code>Consumer products ──► Platform service ──► Vendor APIs
-                            │
-                            ├── SQL Server (tenant-scoped)
-                            ├── Blob storage (large files)
-                            └── Background workers (long jobs)
+      <h4>The architecture beat — draw this</h4>
+      <p>A provider-agnostic platform service: consumers on the left, one facade in the middle, interchangeable providers on the right.</p>
+<div class="fig">
+<svg viewBox="0 0 960 450" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Civit Core BIM architecture: consumers on the left, facade with adapters in the middle, BIM providers on the right, SQL Server below">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
 
-"Products call one internal contract. The platform service owns the vendor
- adapters, the OAuth session handling, and the long-running jobs. Nothing
- upstream knows which vendor is behind it."</code></pre>
-      <p>Four boxes, one sentence each. That is enough to anchor a twenty-minute conversation.</p>
+  <text x="96"  y="26" class="fig-col">CONSUMERS</text>
+  <text x="480" y="26" class="fig-col">CIVIT CORE BIM</text>
+  <text x="864" y="26" class="fig-col">PROVIDERS</text>
+  <text x="96"  y="42" class="fig-sub">products</text>
+  <text x="480" y="42" class="fig-sub">facade + adapters</text>
+  <text x="864" y="42" class="fig-sub">BIM platforms</text>
+
+  <!-- consumers -->
+  <g class="fig-box">
+    <rect x="18" y="70"  width="156" height="60" rx="7"/>
+    <rect x="18" y="160" width="156" height="60" rx="7"/>
+    <rect x="18" y="250" width="156" height="60" rx="7" stroke-dasharray="5 4"/>
+  </g>
+  <text x="96" y="95"  class="fig-t">CivitInfra</text><text x="96" y="114" class="fig-s">documents · projects</text>
+  <text x="96" y="185" class="fig-t">PMC</text>       <text x="96" y="204" class="fig-s">schedule</text>
+  <text x="96" y="275" class="fig-t fig-dim">future consumer</text><text x="96" y="294" class="fig-s">registration only</text>
+
+  <!-- converge into the facade -->
+  <path class="fig-line" d="M174 100 H240 V190 H300" marker-end="url(#ah)"/>
+  <path class="fig-line" d="M174 190 H300" marker-end="url(#ah)"/>
+  <path class="fig-line" d="M174 280 H240 V190" stroke-dasharray="5 4"/>
+
+  <!-- facade -->
+  <rect x="300" y="62" width="360" height="256" rx="10" class="fig-panel"/>
+  <rect x="318" y="82"  width="324" height="52" rx="6" class="fig-inner"/>
+  <text x="480" y="105" class="fig-t">consumer context middleware</text>
+  <text x="480" y="123" class="fig-s">token → consumer_key</text>
+
+  <rect x="318" y="148" width="324" height="68" rx="6" class="fig-inner fig-hl"/>
+  <text x="480" y="171" class="fig-t">ONE internal contract</text>
+  <text x="480" y="189" class="fig-mono">IDocumentProvider</text>
+  <text x="480" y="205" class="fig-mono">IModelProvider …</text>
+
+  <rect x="318" y="230" width="324" height="52" rx="6" class="fig-inner"/>
+  <text x="480" y="253" class="fig-t">provider adapters</text>
+  <text x="480" y="271" class="fig-s">translate our shape ↔ theirs</text>
+
+  <!-- providers -->
+  <g class="fig-box">
+    <rect x="786" y="100" width="156" height="60" rx="7"/>
+    <rect x="786" y="200" width="156" height="60" rx="7" stroke-dasharray="5 4"/>
+  </g>
+  <text x="864" y="125" class="fig-t">Autodesk APS</text><text x="864" y="144" class="fig-s">/ ACC</text>
+  <text x="864" y="225" class="fig-t fig-dim">future provider</text><text x="864" y="244" class="fig-s">an attribute of the row</text>
+
+  <path class="fig-line" d="M660 190 H720 V130 H786" marker-end="url(#ah)"/>
+  <path class="fig-line" d="M720 190 V230 H786" stroke-dasharray="5 4"/>
+
+  <!-- database -->
+  <path class="fig-line" d="M480 318 V362" marker-end="url(#ah)"/>
+  <rect x="340" y="364" width="280" height="64" rx="7" class="fig-inner"/>
+  <text x="480" y="388" class="fig-t">SQL Server</text>
+  <text x="480" y="407" class="fig-s">consumer registry + BIM data, scoped by consumer_key</text>
+</svg>
+</div>
+      <p><strong>The one sentence to say over it:</strong> consumers code against one contract and never learn which provider served them — so adding a consumer or swapping a provider is configuration, not a deployment.</p>
+
+      <h4>The registry — two tables that carry the whole design</h4>
+      <p><code>consumer_registration</code> — who is allowed to call, and which IDP client they are.</p>
+      <div class="scroller">
+      <table>
+        <tr><th>consumer_key</th><th>display_name</th><th>idp_client_id</th><th>is_active</th><th>created_on</th></tr>
+        <tr><td>civitinfra</td><td>CivitInfra</td><td>svc-civitinfra-prod</td><td>1</td><td>2026-03-11</td></tr>
+        <tr><td>pmc</td><td>PMC</td><td>svc-pmc-prod</td><td>1</td><td>2026-04-02</td></tr>
+        <tr><td>sandbox</td><td>Internal Sandbox</td><td>svc-sandbox-dev</td><td>0</td><td>2026-01-20</td></tr>
+      </table>
+      </div>
+
+      <p><code>consumer_provider</code> — which provider serves that consumer, and the credentials to reach it.</p>
+      <div class="scroller">
+      <table>
+        <tr><th>consumer_key</th><th>provider_key</th><th>client_id</th><th>client_secret_enc</th><th>key_version</th><th>is_active</th></tr>
+        <tr><td>civitinfra</td><td>aps</td><td>aps-app-7f21</td><td>0x8A3F1C9D…</td><td>2</td><td>1</td></tr>
+        <tr><td>pmc</td><td>aps</td><td>aps-app-b40e</td><td>0x41C70B2A…</td><td>2</td><td>1</td></tr>
+        <tr><td>sandbox</td><td>aps</td><td>aps-app-11aa</td><td>0x9D02E4F8…</td><td>1</td><td>0</td></tr>
+      </table>
+      </div>
+
+      <p><strong>Why two tables and not one:</strong> a consumer is one identity; its provider credentials are a separate concern, and one consumer may eventually hold registrations against more than one provider. Collapsing them would bake the single-provider assumption back into the schema — which is the exact thing the restructure removes.</p>
+      <p><strong>Why credentials live in the database:</strong> they used to be environment variables the code read by name, so onboarding a product meant editing config and redeploying. Now it is a row. <code>key_version</code> sits beside the ciphertext so the encryption key can rotate without orphaning old rows.</p>
+
+      <h4>How a consumer authenticates — service to service</h4>
+<div class="fig">
+<svg viewBox="0 0 960 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Service-to-service token flow between CivitInfra, Civit Core IDP and Civit Core BIM">
+  <defs>
+    <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="var(--accent)"/>
+    </marker>
+  </defs>
+
+  <!-- actors -->
+  <g class="fig-box">
+    <rect x="20"  y="18" width="200" height="44" rx="7"/>
+    <rect x="380" y="18" width="200" height="44" rx="7"/>
+    <rect x="740" y="18" width="200" height="44" rx="7"/>
+  </g>
+  <text x="120" y="46" class="fig-t">CivitInfra</text>
+  <text x="480" y="46" class="fig-t">Civit Core IDP</text>
+  <text x="840" y="46" class="fig-t">Civit Core BIM</text>
+
+  <!-- lifelines -->
+  <g class="fig-life">
+    <path d="M120 62 V412"/><path d="M480 62 V412"/><path d="M840 62 V412"/>
+  </g>
+
+  <!-- 1 -->
+  <circle cx="120" cy="100" r="11" class="fig-num"/><text x="120" y="104" class="fig-numt">1</text>
+  <path class="fig-line" d="M131 100 H469" marker-end="url(#ah2)"/>
+  <text x="300" y="92"  class="fig-mono">POST /connect/token</text>
+  <text x="300" y="118" class="fig-s">grant_type=client_credentials · client_id + secret</text>
+
+  <!-- 2 -->
+  <circle cx="480" cy="156" r="11" class="fig-num"/><text x="480" y="160" class="fig-numt">2</text>
+  <path class="fig-line" d="M469 156 H131" marker-end="url(#ah2)"/>
+  <text x="300" y="148" class="fig-mono">signed JWT</text>
+  <text x="300" y="174" class="fig-s">iss=civitcore-idp · aud=civitbim · client_id · exp</text>
+
+  <!-- 3 -->
+  <circle cx="120" cy="212" r="11" class="fig-num"/><text x="120" y="216" class="fig-numt">3</text>
+  <path class="fig-line" d="M131 212 H829" marker-end="url(#ah2)"/>
+  <text x="480" y="204" class="fig-mono">GET /api/projects/{id}/models</text>
+  <text x="480" y="230" class="fig-s">Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6…</text>
+
+  <!-- 4 self -->
+  <circle cx="840" cy="272" r="11" class="fig-num"/><text x="840" y="276" class="fig-numt">4</text>
+  <path class="fig-line" d="M851 266 H890 V292 H851" marker-end="url(#ah2)"/>
+  <rect x="596" y="252" width="232" height="56" rx="6" class="fig-inner fig-hl"/>
+  <text x="712" y="273" class="fig-t">validate the token</text>
+  <text x="712" y="291" class="fig-s">signature · iss · aud · exp — no database</text>
+
+  <!-- 5 self -->
+  <circle cx="840" cy="340" r="11" class="fig-num"/><text x="840" y="344" class="fig-numt">5</text>
+  <path class="fig-line" d="M851 334 H890 V360 H851" marker-end="url(#ah2)"/>
+  <rect x="596" y="320" width="232" height="56" rx="6" class="fig-inner"/>
+  <text x="712" y="341" class="fig-t">resolve the consumer</text>
+  <text x="712" y="359" class="fig-mono">client_id → consumer_key</text>
+
+  <!-- 6 -->
+  <circle cx="840" cy="400" r="11" class="fig-num"/><text x="840" y="404" class="fig-numt">6</text>
+  <text x="700" y="404" class="fig-s" text-anchor="end">every query filtered by consumer_key · adapter calls the provider</text>
+</svg>
+</div>
+
+      <div class="key">
+        <span class="lbl">The design point to say out loud</span>
+        <p>The token carries <code>client_id</code>, <strong>not</strong> <code>consumer_key</code>. The identity provider stays generic and knows nothing about our tenancy model — the mapping lives in our own registry. Onboarding a consumer is one client registration on the platform side and two rows on ours, with no coordinated deployment between teams.</p>
+        <p>Step 3 touching no database is worth a sentence too: validation is signature plus three claim checks, which is what makes it cheap enough to do on every request.</p>
+      </div>
+
+      <div class="flag">
+        <span class="lbl">Be precise about what is shipped</span>
+        <p>Say it plainly: <em>“the registry and the adapter layer are in place; consumer identity moves to the platform IDP in the current restructure.”</em></p>
+        <p>That one line does real work. It shows you distinguish shipped from planned — which reads as senior — and it means a follow-up like “so how do consumers authenticate today?” lands on ground you already prepared rather than catching you out.</p>
+      </div>
 
       <div class="key">
         <span class="lbl">Pre-load three specifics</span>
