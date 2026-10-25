@@ -2294,14 +2294,34 @@ var result = q.ToList();                      // filters on 500, not 100</code><
   <details class="qa">
     <summary>IEnumerable vs IQueryable — why does it matter so much with a database?</summary>
     <div class="body">
-      <p>This single distinction causes a large share of real .NET performance incidents.</p>
+      <div class="scroller">
       <table>
-        <tr><th></th><th>IEnumerable&lt;T&gt;</th><th>IQueryable&lt;T&gt;</th></tr>
-        <tr><td>Holds</td><td>A compiled delegate</td><td>An <strong>expression tree</strong> — the query as data</td></tr>
-        <tr><td>Filtering happens</td><td>In memory, in your process</td><td>In the database, translated to SQL</td></tr>
-        <tr><td>Rows transferred</td><td>All of them, then filtered</td><td>Only matching rows</td></tr>
-        <tr><td>Lives in</td><td><code>System.Linq.Enumerable</code></td><td><code>System.Linq.Queryable</code></td></tr>
+        <tr>
+          <th>Type</th>
+          <th>What the variable references</th>
+          <th>Where the actual data is</th>
+          <th>Where filtering happens</th>
+        </tr>
+        <tr>
+          <td><code>IQueryable&lt;Product&gt;</code></td>
+          <td>A database query source</td>
+          <td>In the database until the query executes; matching results are then loaded into application memory</td>
+          <td>Database, when the filter is added before execution</td>
+        </tr>
+        <tr>
+          <td><code>IEnumerable&lt;Product&gt;</code></td>
+          <td>Either an unexecuted query source or an existing in-memory collection, depending on what you assign</td>
+          <td>If query-backed, fetched during enumeration; if assigned a list, already in application memory</td>
+          <td>Application for LINQ operations applied through <code>IEnumerable</code>; an existing SQL filter can still execute in the database</td>
+        </tr>
+        <tr>
+          <td><code>List&lt;Product&gt;</code></td>
+          <td>An actual collection of product objects</td>
+          <td>Application memory</td>
+          <td>Application</td>
+        </tr>
       </table>
+      </div>
 
       <h4>Same-looking code, very different outcomes</h4>
       <p>A <code>Documents</code> table with 2,000,000 rows. We want the 400 created since a cutoff date.</p>
@@ -2325,8 +2345,9 @@ FROM [Documents] AS [d]
 WHERE [d].[CreatedUtc] &gt; @cutoff
 
 → 400 rows across the network, 400 objects allocated</code></pre>
+
       <h4>Why the difference exists</h4>
-      <p>An <strong>expression tree</strong> is the mechanism. <code>IQueryable&lt;T&gt;</code> stores your lambda as a data structure the provider can walk and translate:</p>
+      <p><code>IQueryable&lt;T&gt;</code> stores your lambda as an <strong>expression tree</strong> — a data structure the provider can walk and translate:</p>
 <pre><code>d =&gt; d.CreatedUtc &gt; cutoff
 
 stored as:    GreaterThan
@@ -2381,28 +2402,49 @@ if (db.Orders.Any())         // SELECT TOP(1) 1  — stops at the first row</cod
   <details class="qa">
     <summary>What is the N+1 problem, and how do you fix it?</summary>
     <div class="body">
-      <p><strong>One query to fetch N parents, then one extra query per parent to fetch its children.</strong> 50 projects means 51 round trips.</p>
+      <h4>1. What is the N+1 problem?</h4>
+      <p>The application executes <strong>1</strong> query to fetch <strong>N</strong> parent records, followed by <strong>N</strong> additional queries to fetch related data for each parent.</p>
+      <p>Example: fetching 50 projects and then fetching each project's documents separately results in <strong>51</strong> database queries.</p>
 
-      <h4>Watch it happen</h4>
-<pre><code>var projects = await db.Projects.ToListAsync(ct);     // query 1
+      <h4>2. When does it happen?</h4>
+      <p>A common cause is <strong>lazy loading</strong>.</p>
+      <p>Lazy loading means EF Core automatically fetches related data from the database when you access a navigation property — provided lazy loading is configured and enabled.</p>
+<pre><code>List&lt;Project&gt; projects = await db.Projects.ToListAsync();
+// Query 1: fetches all projects, not their documents
 
-foreach (var p in projects)
-    Console.WriteLine($"{p.Name}: {p.Documents.Count}");   // query per project</code></pre>
-      <p>Turn on query logging and the output is unmistakable:</p>
-<pre><code>SELECT [p].[Id], [p].[Name] FROM [Projects] AS [p]
-SELECT [d].[Id] FROM [Documents] AS [d] WHERE [d].[ProjectId] = 1
-SELECT [d].[Id] FROM [Documents] AS [d] WHERE [d].[ProjectId] = 2
-SELECT [d].[Id] FROM [Documents] AS [d] WHERE [d].[ProjectId] = 3
-...  47 more</code></pre>
-      <p>Each line is a separate network round trip. At 4 ms latency that is 204 ms of pure waiting for data you could have fetched in one call.</p>
+foreach (Project project in projects)
+{
+    int count = project.Documents.Count;
+    // With lazy loading: fetches documents for this project
+}</code></pre>
+      <p>Assuming there are 50 projects and lazy loading is enabled:</p>
+      <ul>
+        <li>The first query fetches 50 projects.</li>
+        <li>Accessing <code>project.Documents</code> triggers one query per project.</li>
+        <li>Total: 1 + 50 = <strong>51</strong> database queries.</li>
+      </ul>
 
-      <h4>The fix — ask for the children up front</h4>
-<pre><code>var projects = await db.Projects
-    .Include(p =&gt; p.Documents)
-    .ToListAsync(ct);
+      <h4>3. What if lazy loading is disabled?</h4>
+      <p>Accessing <code>project.Documents</code> does not automatically query the database.</p>
+      <p>The navigation property contains only the related entities currently available in memory. If the documents have not been loaded, <code>Count</code> does not return the actual database count — it may return zero.</p>
+      <p>N+1 can still occur without lazy loading if your code explicitly executes a separate database query for each project inside the loop.</p>
 
-// SELECT p.Id, p.Name, d.Id, d.FileName
-// FROM Projects p LEFT JOIN Documents d ON d.ProjectId = p.Id     ← one round trip</code></pre>
+      <h4>4. How do you fix it?</h4>
+      <p>If you need the actual document entities, use <code>Include()</code> to load them upfront:</p>
+<pre><code>List&lt;Project&gt; projects = await db.Projects
+    .Include(project =&gt; project.Documents)
+    .ToListAsync();</code></pre>
+      <p>By default, EF Core loads projects and documents using a single SQL query. The documents are available in memory when the query completes, so accessing <code>project.Documents</code> in a loop does not trigger another query.</p>
+
+      <div class="key">
+        <span class="lbl">Interview takeaway</span>
+        <ul>
+          <li><strong>N+1</strong> — one initial query plus one additional query per parent.</li>
+          <li><strong>Lazy loading</strong> — automatically retrieves related data when a navigation property is accessed.</li>
+          <li><strong>Without lazy loading</strong> — navigation property access alone does not fetch missing data.</li>
+          <li><strong>Fix</strong> — use <code>Include()</code> to load related entities upfront and avoid repeated database queries.</li>
+        </ul>
+      </div>
 
       <div class="sim">
         <div class="sim-head">Round trips: lazy loading vs Include</div>
@@ -2417,23 +2459,8 @@ SELECT [d].[Id] FROM [Documents] AS [d] WHERE [d].[ProjectId] = 3
           <div class="out" id="n1Out"></div>
         </div>
       </div>
-
-      <h4>When Include is the wrong fix — cartesian explosion</h4>
-      <p>Two collection <code>Include</code>s on one query multiply the rows:</p>
-<pre><code>db.Projects
-  .Include(p =&gt; p.Documents)      // 20 documents
-  .Include(p =&gt; p.Members)        // 10 members
-// → 20 × 10 = 200 rows per project, with project columns repeated 200 times</code></pre>
-      <p>EF Core calls this <strong>cartesian explosion</strong>. The fix is to split it:</p>
-<pre><code>db.Projects
-  .Include(p =&gt; p.Documents)
-  .Include(p =&gt; p.Members)
-  .AsSplitQuery()                 // 3 queries, no duplication
-</code></pre>
-      <p>Trade-off worth stating: more round trips, far less data on the wire — and the three queries are not in one transaction by default, so the data can be inconsistent if it changes mid-flight.</p>
       <div class="ref"><span>Reference</span>
-        <a href="https://learn.microsoft.com/en-us/ef/core/performance/efficient-querying" target="_blank" rel="noopener">Efficient querying — EF Core docs</a>
-        <a href="https://learn.microsoft.com/en-us/ef/core/querying/single-split-queries" target="_blank" rel="noopener">Single vs split queries</a>
+        <a href="https://learn.microsoft.com/en-us/ef/core/querying/related-data/" target="_blank" rel="noopener">Loading related data — EF Core docs</a>
       </div>
     </div>
   </details>
