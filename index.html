@@ -332,7 +332,7 @@ footer{border-top:1px solid var(--rule);margin-top:4rem;padding:2rem 0;color:var
 
 <!-- ============ C# & .NET ============ -->
 <section id="csharp">
-  <div class="sec-head"><h2>C# &amp; .NET fundamentals</h2><span class="count">6 questions</span></div>
+  <div class="sec-head"><h2>C# &amp; .NET fundamentals</h2><span class="count">7 questions</span></div>
   <p class="sec-note">Directly reported: assemblies and their types, C++ interop, .NET Framework questions, and general “are the basics strong” probing.</p>
 
   <details class="qa">
@@ -720,35 +720,172 @@ Console.WriteLine(op(2, 3));        // 6</code></pre>
         <tr><td><code>Func&lt;T,TResult&gt;</code></td><td>Takes arguments, returns a value</td><td><code>Func&lt;int,bool&gt; isEven = n =&gt; n % 2 == 0;</code></td></tr>
         <tr><td><code>Predicate&lt;T&gt;</code></td><td>Takes one argument, returns bool</td><td><code>list.Find(p =&gt; p.Id == 7)</code></td></tr>
       </table>
-      <p>This is also what LINQ is built on — <code>Where(x =&gt; x.Active)</code> is passing a <code>Func&lt;T,bool&gt;</code> to a method.</p>
+      <p>LINQ is built on these — <code>Where(x =&gt; x.Active)</code> is passing a <code>Func&lt;T,bool&gt;</code> to a method.</p>
 
       <h4>Multicast — one delegate, many methods</h4>
 <pre><code>Action&lt;string&gt; notify  = SendEmail;
-notify += WriteToAuditLog;      // both run, in order
+notify += WriteToAuditLog;      // both run, in subscription order
 notify("Order shipped");</code></pre>
 
-      <h4>An event is a delegate with the dangerous parts locked away</h4>
-      <p>A plain public delegate field lets any caller do two things you never want: overwrite every other subscriber with <code>=</code>, and raise the event themselves. The <code>event</code> keyword restricts outside access to <code>+=</code> and <code>-=</code> only.</p>
-<pre><code>public class ModelProcessor
+      <div class="key">
+        <span class="lbl">An event is a delegate with the dangerous parts locked away</span>
+        <p>A plain public delegate field lets any caller do two things you never want: overwrite every other subscriber with <code>=</code>, and raise the event themselves. The <code>event</code> keyword restricts outside access to <code>+=</code> and <code>-=</code> only.</p>
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>Walk through a complete event handler example</summary>
+    <div class="body">
+      <p>An <strong>event handler</strong> is a method that runs when an event is raised. The publisher notifies every subscribed handler when something happens.</p>
+      <p>The scenario: an order is created, an event is raised, and an email service handles it. Four files.</p>
+
+      <h4>1. OrderCreatedEventArgs.cs — the data the event carries</h4>
+<pre><code>using System;
+
+public class OrderCreatedEventArgs : EventArgs
 {
-    public event EventHandler&lt;ProgressEventArgs&gt;? ProgressChanged;
+    public int OrderId { get; }
+    public string CustomerEmail { get; }
 
-    protected virtual void OnProgressChanged(int percent)
-        =&gt; ProgressChanged?.Invoke(this, new ProgressEventArgs(percent));
-        //                       ↑ null-conditional: no subscribers is legal, not a crash
-}
+    public OrderCreatedEventArgs(int orderId, string customerEmail)
+    {
+        OrderId = orderId;
+        CustomerEmail = customerEmail;
+    }
+}</code></pre>
+      <p>Inheriting <code>EventArgs</code> is the convention. Properties are get-only, so a handler cannot mutate the payload and affect the handlers that run after it.</p>
 
-// subscriber
-processor.ProgressChanged += (sender, e) =&gt; Console.WriteLine($"{e.Percent}%");</code></pre>
-      <p>The convention — <code>EventHandler&lt;TEventArgs&gt;</code>, a <code>(sender, args)</code> signature, and a protected <code>On...</code> method to raise it — is what reviewers look for.</p>
+      <h4>2. OrderService.cs — the publisher</h4>
+<pre><code>using System;
+
+public class OrderService
+{
+    public event EventHandler&lt;OrderCreatedEventArgs&gt;? OrderCreated;
+
+    public void CreateOrder(int orderId, string customerEmail)
+    {
+        // assume the order has been saved to the database
+
+        OrderCreated?.Invoke(
+            this,
+            new OrderCreatedEventArgs(orderId, customerEmail));
+    }
+}</code></pre>
+      <p><strong>The declaration, piece by piece:</strong></p>
+      <ul>
+        <li><code>event</code> — declares an event rather than a plain field.</li>
+        <li><code>EventHandler&lt;OrderCreatedEventArgs&gt;</code> — the delegate type, and the type of data it carries.</li>
+        <li><code>OrderCreated</code> — the event name.</li>
+        <li><code>?</code> — it is nullable, because an event with no subscribers <em>is</em> null.</li>
+      </ul>
+      <p><strong>The invocation, piece by piece:</strong></p>
+      <ul>
+        <li><code>this</code> — passes the current <code>OrderService</code> instance as the sender.</li>
+        <li><code>new OrderCreatedEventArgs(...)</code> — the data for this particular occurrence.</li>
+        <li><code>?.Invoke()</code> — raises the event and calls every registered handler. The <code>?.</code> is what makes "nobody subscribed" legal instead of a <code>NullReferenceException</code>.</li>
+      </ul>
+
+      <h4>3. EmailService.cs — the handler</h4>
+<pre><code>using System;
+
+public class EmailService
+{
+    public void SendOrderConfirmationEmail(
+        object? sender,
+        OrderCreatedEventArgs e)
+    {
+        if (sender is not OrderService orderService)
+        {
+            throw new ArgumentException(
+                "Unexpected event publisher.", nameof(sender));
+        }
+
+        // the object that raised the event
+        Console.WriteLine($"Event publisher: {orderService.GetType().Name}");
+
+        // the data carried by the event
+        Console.WriteLine($"Order ID: {e.OrderId}");
+        Console.WriteLine($"Customer email: {e.CustomerEmail}");
+
+        // the email provider would be called here
+    }
+}</code></pre>
+
+      <h4>What is in <code>sender</code>?</h4>
+      <p>The object that <em>raised</em> the event. Since the publisher called <code>OrderCreated?.Invoke(this, ...)</code>, <code>this</code> is the <code>OrderService</code> instance — so that is what the handler receives.</p>
+      <p>The pattern-match narrows it from <code>object?</code> to the concrete type:</p>
+<pre><code>if (sender is not OrderService orderService)
+    throw new ArgumentException("Unexpected event publisher.", nameof(sender));
+
+// past this line, orderService is the actual publisher</code></pre>
+      <div class="flag">
+        <span class="lbl">The name trips people up</span>
+        <p><code>sender</code> does <strong>not</strong> mean the sender of an email. It means <em>the object that raised the event</em>. In a handler that happens to be about email, the confusion is almost guaranteed — expect it as a trick question.</p>
+      </div>
+
+      <h4>What is in <code>e</code>?</h4>
+      <p>The event-specific data supplied at the moment the event was raised. Given:</p>
+<pre><code>new OrderCreatedEventArgs(101, "customer@example.com")</code></pre>
+      <p>the handler sees <code>e.OrderId</code> = <code>101</code> and <code>e.CustomerEmail</code> = <code>"customer@example.com"</code>.</p>
+
+      <h4>4. Program.cs — wiring it together</h4>
+<pre><code>var orderService = new OrderService();
+var emailService = new EmailService();
+
+orderService.OrderCreated += emailService.SendOrderConfirmationEmail;
+
+orderService.CreateOrder(101, "customer@example.com");</code></pre>
+      <p>The <code>+=</code> <strong>registers</strong> the method with the event. It does not call it. Nothing runs until <code>CreateOrder</code> raises the event.</p>
+      <p>Note this file does not <em>define</em> the handler — it only connects a publisher to a subscriber that already exists.</p>
+
+      <h4>Execution flow</h4>
+<pre><code>1. OrderService declares the OrderCreated event
+2. EmailService defines SendOrderConfirmationEmail
+3. Program subscribes the handler:   OrderCreated += SendOrderConfirmationEmail
+4. CreateOrder(101, "customer@example.com") runs
+5. The event is raised with (this, new OrderCreatedEventArgs(101, "..."))
+6. SendOrderConfirmationEmail executes with those two arguments</code></pre>
+
+      <h4>Output</h4>
+<pre><code>Event publisher: OrderService
+Order ID: 101
+Customer email: customer@example.com</code></pre>
+
+      <h4>Summary</h4>
+      <table>
+        <tr><th>Concept</th><th>Meaning</th></tr>
+        <tr><td>Event declaration</td><td>Declares an event handlers can subscribe to</td></tr>
+        <tr><td>Event handler</td><td>The method executed when the event is raised</td></tr>
+        <tr><td>Subscription (<code>+=</code>)</td><td>Registers a handler with an event</td></tr>
+        <tr><td>Invocation (<code>Invoke</code>)</td><td>Raises the event and calls registered handlers</td></tr>
+        <tr><td><code>sender</code></td><td>The object that raised the event</td></tr>
+        <tr><td><code>e</code></td><td>The event-specific data passed to the handler</td></tr>
+        <tr><td><code>EventHandler&lt;TEventArgs&gt;</code></td><td>The built-in delegate pattern for events carrying custom data</td></tr>
+      </table>
+
+      <div class="key">
+        <span class="lbl">The key point</span>
+        <p>An event does not automatically detect that something happened. <strong>The publisher's code raises it explicitly.</strong> Subscribers receive only the notification and the data the publisher chose to supply.</p>
+      </div>
 
       <div class="flag">
         <span class="lbl">The follow-up: events cause memory leaks</span>
-        <p>Subscribing creates a reference <em>from the publisher to the subscriber</em>. If the publisher is long-lived (a singleton service) and the subscriber is short-lived (a page, a request-scoped object), the subscriber can never be garbage collected — it is still referenced. This is one of the few ways to leak memory in a managed language. Always unsubscribe with <code>-=</code>, or use a weak event pattern.</p>
+        <p>Subscribing creates a reference <em>from the publisher to the subscriber</em>. If the publisher is long-lived (a singleton service) and the subscriber is short-lived (a page, a request-scoped object), the subscriber can never be garbage collected — something still references it.</p>
+<pre><code>orderService.OrderCreated += emailService.SendOrderConfirmationEmail;
+// ... later, when the subscriber is done:
+orderService.OrderCreated -= emailService.SendOrderConfirmationEmail;</code></pre>
+        <p>This is one of the few ways to leak memory in a managed language. Always unsubscribe, or use a weak event pattern.</p>
+      </div>
+
+      <div class="flag">
+        <span class="lbl">Two more things an interviewer may probe</span>
+        <p><strong>Handlers run synchronously, in subscription order.</strong> <code>Invoke</code> calls each one and waits. A slow handler blocks the publisher — and an exception in one handler stops the rest from running at all.</p>
+        <p><strong>Events do not cross process boundaries.</strong> They are an in-process .NET mechanism. "We use events between our microservices" means a message broker, not this.</p>
       </div>
       <div class="ref"><span>Reference</span>
-        <a href="https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/delegates/" target="_blank" rel="noopener">Delegates — C# programming guide</a>
         <a href="https://learn.microsoft.com/en-us/dotnet/csharp/programming-guide/events/" target="_blank" rel="noopener">Events — C# programming guide</a>
+        <a href="https://learn.microsoft.com/en-us/dotnet/standard/events/" target="_blank" rel="noopener">Handling and raising events — Microsoft Learn</a>
       </div>
     </div>
   </details>
